@@ -672,28 +672,52 @@
         </div>
     </div>
 
-    <!-- NEW: Change Password Modal -->
+    <!-- NEW: Change Password Modal (Updated) -->
     <div id="password-modal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 relative overflow-hidden">
+            <!-- Loading Overlay for Modal -->
+             <div id="pwd-loader" class="absolute inset-0 bg-white/80 z-20 hidden flex flex-col items-center justify-center">
+                <i class="fa-solid fa-circle-notch fa-spin text-4xl text-blue-600"></i>
+                <p class="text-sm text-blue-600 font-bold mt-2">กำลังบันทึก...</p>
+            </div>
+
             <h3 class="font-bold text-xl mb-4 text-slate-800 flex items-center gap-2">
                 <i class="fa-solid fa-key text-blue-600"></i> เปลี่ยนรหัสผ่าน
             </h3>
             <form id="passwordForm" onsubmit="handleChangePassword(event)" class="space-y-4">
                 <div>
                     <label class="text-xs font-bold text-slate-500">รหัสผ่านเดิม</label>
-                    <input type="password" name="old_password" class="form-control" required>
+                    <div class="relative">
+                        <input type="password" name="old_password" id="old_password" class="form-control pr-10" required>
+                        <button type="button" onclick="togglePass('old_password', this)" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600 focus:outline-none">
+                            <i class="fa-solid fa-eye"></i>
+                        </button>
+                    </div>
                 </div>
                 <div>
                     <label class="text-xs font-bold text-slate-500">รหัสผ่านใหม่</label>
-                    <input type="password" name="new_password" class="form-control" required minlength="4">
+                    <div class="relative">
+                        <input type="password" name="new_password" id="new_password" class="form-control pr-10" required minlength="4" onkeyup="checkPwdMatch()">
+                        <button type="button" onclick="togglePass('new_password', this)" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600 focus:outline-none">
+                            <i class="fa-solid fa-eye"></i>
+                        </button>
+                    </div>
                 </div>
                 <div>
-                    <label class="text-xs font-bold text-slate-500">ยืนยันรหัสผ่านใหม่</label>
-                    <input type="password" name="confirm_password" class="form-control" required minlength="4">
+                    <label class="text-xs font-bold text-slate-500 flex justify-between">
+                        ยืนยันรหัสผ่านใหม่
+                        <span id="match-msg" class="text-[10px] hidden"><i class="fa-solid fa-circle-check"></i> ตรงกัน</span>
+                    </label>
+                    <div class="relative">
+                        <input type="password" name="confirm_password" id="confirm_password" class="form-control pr-10" required minlength="4" onkeyup="checkPwdMatch()">
+                        <button type="button" onclick="togglePass('confirm_password', this)" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600 focus:outline-none">
+                            <i class="fa-solid fa-eye"></i>
+                        </button>
+                    </div>
                 </div>
                 <div class="pt-4 flex justify-end gap-2">
                     <button type="button" onclick="closeModal('password-modal')" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition">ยกเลิก</button>
-                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-lg">ยืนยัน</button>
+                    <button type="submit" id="btn-save-pwd" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">ยืนยัน</button>
                 </div>
             </form>
         </div>
@@ -1263,10 +1287,59 @@
         async function deleteUser(u) { const r = await Swal.fire({title: 'ยืนยันลบผู้ใช้?', text: u, icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', cancelButtonColor: '#3085d6', confirmButtonText: 'ลบผู้ใช้', cancelButtonText: 'ยกเลิก'}); if(r.isConfirmed) { await apiCall('deleteUser', { targetUsername: u, userStr: JSON.stringify(currentUser) }); Swal.fire('Deleted!', 'ลบผู้ใช้เรียบร้อยแล้ว', 'success'); loadUsers(); } }
         async function loadLogs() { const d = await apiCall('getLogs'); if(d) el('logs-table-body').innerHTML = d.map(l=>`<tr class="border-b border-slate-50 hover:bg-slate-50"><td class="pl-6 py-3 text-xs text-slate-400 font-mono">${new Date(l.timestamp).toLocaleString()}</td><td class="font-bold text-blue-600 text-xs">${l.username}</td><td><span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-[10px] uppercase font-bold">${l.action}</span></td><td class="pr-6 text-sm text-slate-600">${l.details}</td></tr>`).join(''); }
 
-        // --- NEW: Change Password Logic ---
+        // --- NEW: Change Password Logic (Enhanced) ---
         function openChangePasswordModal() {
             document.getElementById('passwordForm').reset();
+            // Reset visual states
+            document.getElementById('match-msg').classList.add('hidden');
+            document.querySelectorAll('#passwordForm input').forEach(i => {
+                i.classList.remove('border-red-500', 'border-green-500', 'focus:border-red-500', 'focus:border-green-500', 'ring-red-500/10', 'ring-green-500/10');
+            });
             show('password-modal');
+        }
+
+        function togglePass(inputId, btn) {
+            const input = document.getElementById(inputId);
+            const icon = btn.querySelector('i');
+            if (input.type === "password") {
+                input.type = "text";
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = "password";
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+
+        function checkPwdMatch() {
+            const p1 = document.getElementById('new_password').value;
+            const p2 = document.getElementById('confirm_password').value;
+            const msg = document.getElementById('match-msg');
+            const btn = document.getElementById('btn-save-pwd');
+            const inp2 = document.getElementById('confirm_password');
+
+            if (p2 === "") {
+                msg.classList.add('hidden');
+                inp2.classList.remove('border-red-500', 'border-green-500', 'focus:border-red-500', 'focus:border-green-500', 'ring-red-500/10', 'ring-green-500/10');
+                btn.disabled = false;
+                return;
+            }
+
+            msg.classList.remove('hidden');
+            if (p1 === p2) {
+                msg.innerHTML = '<i class="fa-solid fa-circle-check"></i> ตรงกัน';
+                msg.className = "text-[10px] text-green-600 font-bold";
+                inp2.classList.remove('border-red-500', 'focus:border-red-500', 'ring-red-500/10');
+                inp2.classList.add('border-green-500', 'focus:border-green-500', 'ring-green-500/10');
+                btn.disabled = false;
+            } else {
+                msg.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> ไม่ตรงกัน';
+                msg.className = "text-[10px] text-red-500 font-bold";
+                inp2.classList.remove('border-green-500', 'focus:border-green-500', 'ring-green-500/10');
+                inp2.classList.add('border-red-500', 'focus:border-red-500', 'ring-red-500/10');
+                btn.disabled = true;
+            }
         }
 
         async function handleChangePassword(e) {
@@ -1281,13 +1354,16 @@
                 return;
             }
 
-            showLoader();
+            // Show Custom Spinner inside modal
+            document.getElementById('pwd-loader').classList.remove('hidden');
+            
             const res = await apiCall('changePassword', { 
                 username: currentUser.username, 
                 oldPassword: oldPass, 
                 newPassword: newPass 
             });
-            hideLoader();
+            
+            document.getElementById('pwd-loader').classList.add('hidden');
 
             if (res && res.success) {
                 Swal.fire({ icon: 'success', title: 'เปลี่ยนรหัสผ่านสำเร็จ', text: 'กรุณาเข้าสู่ระบบใหม่ด้วยรหัสผ่านใหม่', showConfirmButton: true })
