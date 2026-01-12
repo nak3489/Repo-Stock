@@ -283,8 +283,11 @@
              © 2026 ADMIN OK
         </div>
 
-        <!-- Logout -->
-        <div class="p-4 border-t border-white/10 bg-black/20">
+        <!-- NEW: Change Password & Logout Group -->
+        <div class="p-4 border-t border-white/10 bg-black/20 space-y-2">
+            <button onclick="openChangePasswordModal()" class="w-full text-slate-400 hover:text-white py-2 text-sm font-medium transition flex items-center justify-center gap-2 group">
+                <i class="fa-solid fa-key group-hover:text-blue-400 transition"></i> เปลี่ยนรหัสผ่าน
+            </button>
             <button onclick="logout()" class="w-full bg-red-500/10 text-red-400 py-2.5 rounded-xl hover:bg-red-500 hover:text-white text-sm font-medium transition flex items-center justify-center gap-2 border border-red-500/20 group">
                 <i class="fa-solid fa-power-off group-hover:scale-110 transition"></i> ออกจากระบบ
             </button>
@@ -669,6 +672,33 @@
         </div>
     </div>
 
+    <!-- NEW: Change Password Modal -->
+    <div id="password-modal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+            <h3 class="font-bold text-xl mb-4 text-slate-800 flex items-center gap-2">
+                <i class="fa-solid fa-key text-blue-600"></i> เปลี่ยนรหัสผ่าน
+            </h3>
+            <form id="passwordForm" onsubmit="handleChangePassword(event)" class="space-y-4">
+                <div>
+                    <label class="text-xs font-bold text-slate-500">รหัสผ่านเดิม</label>
+                    <input type="password" name="old_password" class="form-control" required>
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-slate-500">รหัสผ่านใหม่</label>
+                    <input type="password" name="new_password" class="form-control" required minlength="4">
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-slate-500">ยืนยันรหัสผ่านใหม่</label>
+                    <input type="password" name="confirm_password" class="form-control" required minlength="4">
+                </div>
+                <div class="pt-4 flex justify-end gap-2">
+                    <button type="button" onclick="closeModal('password-modal')" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition">ยกเลิก</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-lg">ยืนยัน</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbwhz6PqalCbq59n1UhmFjUbmuGJOy3RPXxuVYs1pPwZVZFMuIw64rUkyB9SRU6ZugNzTQ/exec"; 
         
@@ -878,6 +908,10 @@
                 if(body.action === 'login') return { ok:true, json: async() => ({success:true, ...mockUsers[0]}) };
                 if(body.action === 'getVehicles') return { ok:true, json: async() => (mockVehicles) };
                 if(body.action === 'getUsers') return { ok:true, json: async() => (mockUsers) };
+                if(body.action === 'changePassword') {
+                    if(body.oldPassword === 'password' || body.oldPassword === '1234') return { ok:true, json: async() => ({success:true}) };
+                    return { ok:true, json: async() => ({success:false, message:'รหัสผ่านเดิมไม่ถูกต้อง (Mock)'}) };
+                }
                 if(body.action === 'getLogs') return { ok:true, json: async() => ([{timestamp:new Date(), username:'admin', action:'LOGIN', details:'Test'}]) };
                 return { ok:true, json: async() => ({success:true}) };
             };
@@ -1228,6 +1262,41 @@
         async function saveUserData(e) { e.preventDefault(); const f=e.target; const d={username:f.u_username.value, old_username:f.u_old_username.value, password:f.u_password.value, name:f.u_name.value, role:f.u_role.value, status:'active'}; const res = await apiCall('saveUser', { form: d, userStr: JSON.stringify(currentUser) }); if(res && res.success) { Swal.fire({icon:'success', title:'บันทึกสำเร็จ', timer:1500, showConfirmButton:false}); closeModal('user-modal'); loadUsers(); f.reset(); } else Swal.fire('Error', res.message, 'error'); }
         async function deleteUser(u) { const r = await Swal.fire({title: 'ยืนยันลบผู้ใช้?', text: u, icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', cancelButtonColor: '#3085d6', confirmButtonText: 'ลบผู้ใช้', cancelButtonText: 'ยกเลิก'}); if(r.isConfirmed) { await apiCall('deleteUser', { targetUsername: u, userStr: JSON.stringify(currentUser) }); Swal.fire('Deleted!', 'ลบผู้ใช้เรียบร้อยแล้ว', 'success'); loadUsers(); } }
         async function loadLogs() { const d = await apiCall('getLogs'); if(d) el('logs-table-body').innerHTML = d.map(l=>`<tr class="border-b border-slate-50 hover:bg-slate-50"><td class="pl-6 py-3 text-xs text-slate-400 font-mono">${new Date(l.timestamp).toLocaleString()}</td><td class="font-bold text-blue-600 text-xs">${l.username}</td><td><span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-[10px] uppercase font-bold">${l.action}</span></td><td class="pr-6 text-sm text-slate-600">${l.details}</td></tr>`).join(''); }
+
+        // --- NEW: Change Password Logic ---
+        function openChangePasswordModal() {
+            document.getElementById('passwordForm').reset();
+            show('password-modal');
+        }
+
+        async function handleChangePassword(e) {
+            e.preventDefault();
+            const f = e.target;
+            const oldPass = f.old_password.value;
+            const newPass = f.new_password.value;
+            const confirmPass = f.confirm_password.value;
+
+            if (newPass !== confirmPass) {
+                Swal.fire('Error', 'รหัสผ่านใหม่ไม่ตรงกัน', 'error');
+                return;
+            }
+
+            showLoader();
+            const res = await apiCall('changePassword', { 
+                username: currentUser.username, 
+                oldPassword: oldPass, 
+                newPassword: newPass 
+            });
+            hideLoader();
+
+            if (res && res.success) {
+                Swal.fire({ icon: 'success', title: 'เปลี่ยนรหัสผ่านสำเร็จ', text: 'กรุณาเข้าสู่ระบบใหม่ด้วยรหัสผ่านใหม่', showConfirmButton: true })
+                .then(() => logout());
+                closeModal('password-modal');
+            } else {
+                Swal.fire('Error', res ? res.message : 'เกิดข้อผิดพลาด', 'error');
+            }
+        }
     </script>
 </body>
 </html>
