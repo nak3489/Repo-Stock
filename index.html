@@ -149,6 +149,16 @@
         @keyframes rotate {
             to{transform:rotate(360deg)}
         }
+        
+        /* Multi-select Dropdown */
+        .dropdown-menu {
+            max-height: 300px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+        }
+        .checkbox-item:hover {
+            background-color: #f1f5f9;
+        }
     </style>
 </head>
 <body class="text-slate-800 h-screen overflow-hidden flex font-kanit">
@@ -371,31 +381,58 @@
 
         <!-- Vehicles List View -->
         <div id="view-vehicles" class="flex-1 overflow-y-auto p-6 md:p-8 space-y-6 hidden fade-in">
-            <div class="flex flex-col md:flex-row justify-between gap-4">
+            <div class="flex flex-col xl:flex-row justify-between gap-4 items-start xl:items-center">
                 <div>
                     <h2 class="text-2xl font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-database text-blue-600"></i> รายชื่อรถยึด</h2>
                     <p class="text-slate-500 text-sm">จัดการข้อมูลรถทั้งหมดในระบบ</p>
                 </div>
-                <div class="flex gap-2 w-full md:w-auto items-center">
+                <div class="flex flex-wrap gap-2 w-full xl:w-auto items-center">
                     <button onclick="refreshCurrentTab()" class="bg-white border border-slate-200 text-slate-600 hover:text-blue-600 hover:border-blue-400 px-3 py-2 rounded-lg shadow-sm text-sm transition" title="รีเฟรช">
                         <i class="fa-solid fa-rotate"></i>
                     </button>
-                    <input type="text" id="search-vehicle" onkeyup="filterVehicles()" placeholder="ค้นหา..." class="border p-2 rounded-xl w-full md:w-64">
-                    <button onclick="openVehicleModal()" class="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-medium shadow flex items-center gap-2"><i class="fa-solid fa-plus"></i> เพิ่มรถ</button>
+                    
+                    <!-- New Multi-select Filters -->
+                    <div class="relative group" id="zone-filter-container">
+                        <button onclick="toggleFilter('zone')" class="bg-white border border-slate-200 text-slate-700 hover:border-blue-400 px-4 py-2 rounded-xl shadow-sm text-sm font-medium flex items-center gap-2">
+                            <i class="fa-solid fa-map"></i> กรองเขต <i class="fa-solid fa-chevron-down text-xs ml-1"></i>
+                        </button>
+                        <div id="filter-zone-menu" class="hidden absolute top-full left-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-xl z-20 p-2 dropdown-menu">
+                            <!-- Checkboxes injected by JS -->
+                        </div>
+                    </div>
+
+                    <div class="relative group" id="branch-filter-container">
+                        <button onclick="toggleFilter('branch')" class="bg-white border border-slate-200 text-slate-700 hover:border-blue-400 px-4 py-2 rounded-xl shadow-sm text-sm font-medium flex items-center gap-2">
+                            <i class="fa-solid fa-building"></i> กรองสาขา <i class="fa-solid fa-chevron-down text-xs ml-1"></i>
+                        </button>
+                        <div id="filter-branch-menu" class="hidden absolute top-full left-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-xl z-20 p-2 dropdown-menu">
+                            <!-- Checkboxes injected by JS -->
+                        </div>
+                    </div>
+                    
+                    <input type="text" id="search-vehicle" onkeyup="filterVehicles()" placeholder="ค้นหาทะเบียน/รุ่น..." class="border p-2 rounded-xl w-full md:w-56 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-100 transition">
+                    <button onclick="openVehicleModal()" class="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-medium shadow flex items-center gap-2 hover:bg-blue-700 transition"><i class="fa-solid fa-plus"></i> เพิ่มรถ</button>
                 </div>
             </div>
-            <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+            
+            <!-- Filter Tags Display (Optional) -->
+            <div id="active-filters" class="flex flex-wrap gap-2 hidden"></div>
+
+            <div class="bg-white rounded-2xl shadow-sm overflow-hidden border border-slate-200">
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm text-left custom-table">
                         <thead>
                             <tr>
-                                <th class="pl-6 w-20">รูปภาพ</th>
+                                <!-- REQ 1: Image -> Zone -->
+                                <th class="pl-6 w-24">เขต</th>
                                 <th>วันที่ยึด</th>
                                 <th>เลขที่สัญญา</th>
                                 <th>ชื่อลูกค้า</th>
                                 <th>ยี่ห้อ / รุ่น</th>
-                                <th>ทะเบียน</th>
-                                <th>สาขา / เขต</th>
+                                <!-- REQ 3 & 4: Location replaces Plate, Swap Branch and Location -->
+                                <!-- New Order: ... | Model | Branch | Location | ... -->
+                                <th>สาขา</th>
+                                <th>สถานที่จอด</th> 
                                 <th class="text-center">สถานะ</th>
                                 <th class="text-right">ราคาขาย</th>
                                 <th class="pr-6 text-center w-32">จัดการ</th>
@@ -641,6 +678,12 @@
         let currentTab = 'dashboard';
         let logoutTimer; // Timer for auto logout
 
+        // Filter state
+        let activeFilters = {
+            zones: new Set(),
+            branches: new Set()
+        };
+
         const provinces = ["กรุงเทพมหานคร","กระบี่","กาญจนบุรี","กาฬสินธุ์","กำแพงเพชร","ขอนแก่น","จันทบุรี","ฉะเชิงเทรา","ชลบุรี","ชัยนาท","ชัยภูมิ","ชุมพร","เชียงราย","เชียงใหม่","ตรัง","ตราด","ตาก","นครนายก","นครปฐม","นครพนม","นครราชสีมา","นครศรีธรรมราช","นครสวรรค์","นนทบุรี","นราธิวาส","น่าน","บึงกาฬ","บุรีรัมย์","ปทุมธานี","ประจวบคีรีขันธ์","ปราจีนบุรี","ปัตตานี","พระนครศรีอยุธยา","พะเยา","พังงา","พัทลุง","พิจิตร","พิษณุโลก","เพชรบุรี","เพชรบูรณ์","แพร่","ภูเก็ต","มหาสารคาม","มุกดาหาร","แม่ฮ่องสอน","ยโสธร","ยะลา","ร้อยเอ็ด","ระนอง","ระยอง","ราชบุรี","ลพบุรี","ลำปาง","ลำพูน","เลย","ศรีสะเกษ","สกลนคร","สงขลา","สตูล","สมุทรปราการ","สมุทรสงคราม","สมุทรสาคร","สระแก้ว","สระบุรี","สิงห์บุรี","สุโขทัย","สุพรรณบุรี","สุราษฎร์ธานี","สุรินทร์","หนองคาย","หนองบัวลำภู","อ่างทอง","อำนาจเจริญ","อุดรธานี","อุตรดิตถ์","อุทัยธานี","อุบลราชธานี"];
         
         // Short name map (example)
@@ -680,6 +723,12 @@
 
         // --- Init System (Persistence) ---
         window.onload = function() {
+            // Close dropdowns when clicking outside
+            document.addEventListener('click', function(event) {
+                if (!event.target.closest('#zone-filter-container')) hide('filter-zone-menu');
+                if (!event.target.closest('#branch-filter-container')) hide('filter-branch-menu');
+            });
+
             const savedUser = localStorage.getItem('repo_user');
             if (savedUser) {
                 try {
@@ -698,6 +747,87 @@
                 }
             }
         };
+
+        // --- Filter Logic ---
+        function toggleFilter(type) {
+            const menu = el(`filter-${type}-menu`);
+            if (menu.classList.contains('hidden')) {
+                hide('filter-zone-menu'); // hide others
+                hide('filter-branch-menu'); // hide others
+                show(`filter-${type}-menu`);
+            } else {
+                hide(`filter-${type}-menu`);
+            }
+        }
+
+        function populateFilters() {
+            // Get Unique Zones
+            const zones = [...new Set(vehiclesData.map(v => v.area_code || 'N/A'))].sort();
+            const zoneMenu = el('filter-zone-menu');
+            
+            // Generate Zone Checkboxes with Select All
+            let zoneHTML = `
+                <label class="flex items-center gap-2 px-2 py-2 cursor-pointer rounded checkbox-item text-sm font-bold border-b border-slate-100 mb-1 text-blue-700 bg-slate-50 hover:bg-slate-100 sticky top-0 z-10">
+                    <input type="checkbox" id="cb-all-zone" onchange="toggleAllFilters('zone', this.checked)" class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                    <span>เลือกทั้งหมด</span>
+                </label>
+            `;
+            zoneHTML += zones.map(z => `
+                <label class="flex items-center gap-2 px-2 py-1.5 cursor-pointer rounded checkbox-item text-sm">
+                    <input type="checkbox" value="${z}" onchange="checkSelectAllState('zone'); updateFilters('zone')" ${activeFilters.zones.has(z) ? 'checked' : ''} class="filter-cb-zone w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                    <span>${z}</span>
+                </label>
+            `).join('');
+            zoneMenu.innerHTML = zoneHTML;
+            checkSelectAllState('zone');
+
+            // Get Unique Branches
+            const branches = [...new Set(vehiclesData.map(v => v.branch_name || v.branch_code || 'N/A'))].sort();
+            const branchMenu = el('filter-branch-menu');
+            
+            // Generate Branch Checkboxes with Select All
+            let branchHTML = `
+                <label class="flex items-center gap-2 px-2 py-2 cursor-pointer rounded checkbox-item text-sm font-bold border-b border-slate-100 mb-1 text-blue-700 bg-slate-50 hover:bg-slate-100 sticky top-0 z-10">
+                    <input type="checkbox" id="cb-all-branch" onchange="toggleAllFilters('branch', this.checked)" class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                    <span>เลือกทั้งหมด</span>
+                </label>
+            `;
+            branchHTML += branches.map(b => `
+                <label class="flex items-center gap-2 px-2 py-1.5 cursor-pointer rounded checkbox-item text-sm">
+                    <input type="checkbox" value="${b}" onchange="checkSelectAllState('branch'); updateFilters('branch')" ${activeFilters.branches.has(b) ? 'checked' : ''} class="filter-cb-branch w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                    <span class="truncate">${b}</span>
+                </label>
+            `).join('');
+            branchMenu.innerHTML = branchHTML;
+            checkSelectAllState('branch');
+        }
+
+        function toggleAllFilters(type, isChecked) {
+            const checkboxes = document.querySelectorAll(`.filter-cb-${type}`);
+            checkboxes.forEach(cb => cb.checked = isChecked);
+            updateFilters(type);
+        }
+
+        function checkSelectAllState(type) {
+            const allCb = el(`cb-all-${type}`);
+            if(!allCb) return;
+            const checkboxes = document.querySelectorAll(`.filter-cb-${type}`);
+            const allChecked = Array.from(checkboxes).length > 0 && Array.from(checkboxes).every(cb => cb.checked);
+            const someChecked = Array.from(checkboxes).some(cb => cb.checked);
+            
+            allCb.checked = allChecked;
+            allCb.indeterminate = someChecked && !allChecked;
+        }
+
+        function updateFilters(type) {
+            const checkboxes = document.querySelectorAll(`.filter-cb-${type}`);
+            const targetSet = type === 'zone' ? activeFilters.zones : activeFilters.branches;
+            targetSet.clear();
+            checkboxes.forEach(cb => {
+                if(cb.checked) targetSet.add(cb.value);
+            });
+            filterVehicles();
+        }
 
         // --- Idle Timer Logic ---
         function startIdleTimer() {
@@ -741,7 +871,7 @@
         if (!API_URL && typeof google === 'undefined') {
             console.warn("Using Mock Data"); el('login-alert').classList.remove('hidden');
             const mockUsers = [{username:'admin', role:'Admin', name:'Super Admin'}];
-            const mockVehicles = [{id:'1', plate:'1กท 9999 กทม.', price:25000, status:'รอโยกย้าย', seize_date:'2025-01-01', area_code:'K012', branch_name:'Test', brand_model:'Honda Civic'}];
+            const mockVehicles = [{id:'1', plate:'1กท 9999 กทม.', location:'ลานจอด A1', price:25000, status:'รอโยกย้าย', seize_date:'2025-01-01', area_code:'K012', branch_name:'สาขาบางเขน', brand_model:'Honda Civic'}];
             window.fetch = async (url, options) => {
                 await new Promise(r => setTimeout(r, 600));
                 let body = {}; if(options && options.body) body = JSON.parse(options.body);
@@ -803,7 +933,7 @@
 
         async function loadDashboardData() {
             const data = await apiCall('getVehicles', { userStr: JSON.stringify(currentUser) }); 
-            if(data) { vehiclesData = data; renderDashboard(data); }
+            if(data) { vehiclesData = data; renderDashboard(data); populateFilters(); }
         }
 
         function renderDashboard(d) {
@@ -826,18 +956,57 @@
             d.slice(0,5).forEach(v => { tb.innerHTML += `<tr class="transition hover:bg-slate-50"><td class="pl-6 py-4 font-medium text-slate-600">${v.seize_date||'-'}</td><td class="font-bold text-slate-800">${v.brand_model}</td><td><span class="bg-white border border-slate-200 px-2 py-1 rounded text-xs font-mono shadow-sm">${v.plate}</span></td><td class="text-xs text-slate-500">${v.branch_name}</td><td class="pr-6 text-right font-bold text-emerald-600">${Number(v.price).toLocaleString()}</td></tr>`; });
         }
 
-        function loadVehicles() { if(vehiclesData.length===0) loadDashboardData(); else renderVehicleTable(vehiclesData); }
+        function loadVehicles() { 
+            if(vehiclesData.length===0) loadDashboardData(); 
+            else renderVehicleTable(vehiclesData); 
+        }
+
         function renderVehicleTable(d) {
             const tb = el('vehicle-table-body'); tb.innerHTML = '';
-            if(d.length===0) { el('empty-state').classList.remove('hidden'); return; } else el('empty-state').classList.add('hidden');
-            d.forEach(v => {
+            
+            // Filter Logic
+            const term = el('search-vehicle').value.toLowerCase();
+            const filtered = d.filter(v => {
+                const matchTerm = (v.plate||'').toLowerCase().includes(term) || (v.brand_model||'').toLowerCase().includes(term);
+                const matchZone = activeFilters.zones.size === 0 || activeFilters.zones.has(v.area_code);
+                const matchBranch = activeFilters.branches.size === 0 || activeFilters.branches.has(v.branch_name) || activeFilters.branches.has(v.branch_code);
+                return matchTerm && matchZone && matchBranch;
+            });
+
+            if(filtered.length===0) { el('empty-state').classList.remove('hidden'); return; } else el('empty-state').classList.add('hidden');
+            
+            filtered.forEach(v => {
                 const row = document.createElement('tr'); row.className="border-b border-slate-50 hover:bg-slate-50 group transition";
                 const s = (v.status||'รอโยกย้าย').toLowerCase(); 
                 let badge = 'bg-slate-100 text-slate-600 border-slate-200';
                 if(['waiting', 'รอโยก', 'รอโยกย้าย', 'รอตรวจสอบ'].includes(s)) badge = 'bg-red-100 text-red-700 border-red-200';
                 else if(['moved', 'โยกแล้ว', 'โยกย้ายแล้ว', 'ย้ายแล้ว', 'sold', 'ขายแล้ว'].includes(s)) badge = 'bg-emerald-100 text-emerald-700 border-emerald-200';
                 
-                row.innerHTML = `<td class="pl-6 py-4"><div class="w-12 h-12 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 overflow-hidden shadow-sm border border-slate-200">${v.img_front_right ? '<img src="https://img.icons8.com/color/48/image-file.png" class="w-6 opacity-70">' : '<i class="fa-solid fa-car text-lg"></i>'}</div></td><td class="text-xs text-slate-500">${v.seize_date}</td><td class="text-xs font-medium text-slate-700">${v.contract_no||'-'}</td><td class="text-xs text-slate-600">${v.customer_name||'-'}</td><td class="font-bold text-slate-800 group-hover:text-blue-600 transition">${v.brand_model}</td><td><span class="bg-white border border-slate-200 px-2.5 py-1 rounded-md text-xs font-mono shadow-sm">${v.plate}</span></td><td class="text-xs text-slate-500"><div class="font-medium text-slate-700">${v.branch_name}</div><div class="text-[10px] mt-0.5 text-slate-400">เขต ${v.area_code}</div></td><td class="text-center"><span class="px-2.5 py-1 rounded-full text-[10px] uppercase font-bold border ${badge}">${s}</span></td><td class="text-right font-bold text-emerald-600 text-sm tracking-tight">${Number(v.price).toLocaleString()}</td><td class="pr-6 text-center"><div class="flex justify-center gap-2 opacity-80 group-hover:opacity-100 transition"><button class="btn-view w-8 h-8 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition flex items-center justify-center shadow-sm" title="ดูรายละเอียด"><i class="fa-solid fa-eye text-xs"></i></button>${['admin','regional manager'].includes((currentUser.role||'').toLowerCase()) ? '<button class="btn-del w-8 h-8 rounded-full bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition flex items-center justify-center shadow-sm"><i class="fa-solid fa-trash text-xs"></i></button>' : ''}</div></td>`;
+                // REQ: Column changes applied here
+                // 1. Image -> Zone Text (v.area_code)
+                // 3 & 4. Swap Branch and Location. Plate replaced by Location.
+                // Order: Zone | Date | Contract | Name | Model | Branch | Location | Status | Price | Action
+                row.innerHTML = `
+                    <td class="pl-6 py-4 font-bold text-blue-600">${v.area_code || '-'}</td>
+                    <td class="text-xs text-slate-500">${v.seize_date}</td>
+                    <td class="text-xs font-medium text-slate-700">${v.contract_no||'-'}</td>
+                    <td class="text-xs text-slate-600">${v.customer_name||'-'}</td>
+                    <td class="font-bold text-slate-800 group-hover:text-blue-600 transition">${v.brand_model}</td>
+                    
+                    <td class="text-xs text-slate-500">
+                        <div class="font-medium text-slate-700">${v.branch_name}</div>
+                        <div class="text-[10px] mt-0.5 text-slate-400">Code: ${v.branch_code || '-'}</div>
+                    </td>
+                    <td>
+                        <div class="flex items-center gap-1.5">
+                            <i class="fa-solid fa-location-dot text-red-400 text-xs"></i>
+                            <span class="text-sm font-medium text-slate-700">${v.location || '-'}</span>
+                        </div>
+                    </td>
+
+                    <td class="text-center"><span class="px-2.5 py-1 rounded-full text-[10px] uppercase font-bold border ${badge} whitespace-nowrap">${s}</span></td>
+                    <td class="text-right font-bold text-emerald-600 text-sm tracking-tight">${Number(v.price).toLocaleString()}</td>
+                    <td class="pr-6 text-center"><div class="flex justify-center gap-2 opacity-80 group-hover:opacity-100 transition"><button class="btn-view w-8 h-8 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition flex items-center justify-center shadow-sm" title="ดูรายละเอียด"><i class="fa-solid fa-eye text-xs"></i></button>${['admin','regional manager'].includes((currentUser.role||'').toLowerCase()) ? '<button class="btn-del w-8 h-8 rounded-full bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition flex items-center justify-center shadow-sm"><i class="fa-solid fa-trash text-xs"></i></button>' : ''}</div></td>`;
                 row.querySelector('.btn-view').onclick = () => viewDetail(v.id); if(row.querySelector('.btn-del')) row.querySelector('.btn-del').onclick = () => deleteVehicle(v.id); tb.appendChild(row);
             });
         }
