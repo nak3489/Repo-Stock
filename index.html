@@ -213,7 +213,7 @@
                                 <input type="password" name="password" class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition outline-none text-slate-700" placeholder="Password" required>
                             </div>
                         </div>
-                        <button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-500/30 transition transform active:scale-[0.98] flex items-center justify-center gap-2 group">
+                        <button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-500/30 transition transform active:scale-[0.98] flex items-center justify-center gap-2 group disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none">
                             <span>เข้าสู่ระบบ</span> <i class="fa-solid fa-arrow-right group-hover:translate-x-1 transition"></i>
                         </button>
                     </form>
@@ -950,12 +950,22 @@
         async function handleLogin(e) {
             e.preventDefault(); 
             
-            // Show Loader Animation immediately
+            // Button Animation Logic (New)
+            const btn = e.target.querySelector('button[type="submit"]');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> <span>กำลังเข้าสู่ระบบ...</span>';
+            btn.disabled = true;
+
+            // Show Loader Animation immediately (Global loader)
             showLoader();
             
             const res = await apiCall('login', { username: e.target.username.value, password: e.target.password.value });
             
             hideLoader();
+            
+            // Reset Button
+            btn.innerHTML = originalText;
+            btn.disabled = false;
             
             if(res && res.success){
                 currentUser = res; 
