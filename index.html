@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    
+    <title>ระบบสต๊อกรถยึด (Repo Stock)</title>
+    
+    <!-- External Libraries (CDNs) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <!-- Link to Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="text-slate-800 h-screen overflow-hidden flex font-kanit">
+
+    <!-- Loading Spinner -->
+    <div id="loader" class="loading-overlay hidden">
+        <span class="loader"></span>
+        <p class="mt-6 text-slate-500 font-medium animate-pulse tracking-wide">กำลังประมวลผล...</p>
+    </div>
+
+    <!-- Login Page -->
+    <div id="login-view" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-100 p-4 font-sarabun" 
+         style="background-image: radial-gradient(#cbd5e1 1px, transparent 1px); background-size: 24px 24px;">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col md:flex-row h-auto md:h-[600px] border border-white/50">
+            <!-- Left Side -->
+            <div class="w-full md:w-1/2 bg-gradient-to-br from-blue-900 to-indigo-900 text-white p-12 flex flex-col justify-center items-center relative overflow-hidden">
+                <div class="absolute top-[-50px] left-[-50px] w-60 h-60 bg-blue-500/20 rounded-full blur-3xl"></div>
+                <div class="absolute bottom-[-50px] right-[-50px] w-80 h-80 bg-purple-500/20 rounded-full blur-3xl"></div>
+                <div class="relative z-10 text-center">
+                    <div class="w-24 h-24 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center mb-6 mx-auto shadow-inner border border-white/20">
+                        <i class="fa-solid fa-car-side text-5xl text-white drop-shadow-md"></i>
+                    </div>
+                    <h1 class="text-4xl font-bold mb-2 tracking-tight text-white">Repo Stock</h1>
+                    <div class="h-1 w-20 bg-blue-400 mx-auto mb-4 rounded-full"></div>
+                    <p class="text-blue-100 text-lg font-light">ระบบบริหารจัดการรถยึดครบวงจร</p>
+                    <div class="mt-8 space-y-2 text-sm text-blue-200/80 text-left inline-block">
+                        <div class="flex items-center gap-3"><i class="fa-solid fa-shield-halved text-emerald-400"></i> ปลอดภัยและแม่นยำ</div>
+                        <div class="flex items-center gap-3"><i class="fa-solid fa-chart-line text-emerald-400"></i> ติดตามสถานะ Real-time</div>
+                    </div>
+                </div>
+            </div>
+            <!-- Right Side Form -->
+            <div class="w-full md:w-1/2 p-10 md:p-14 flex flex-col justify-center bg-white relative">
+                <div class="max-w-sm mx-auto w-full">
+                    <div class="mb-8">
+                        <h2 class="text-3xl font-bold text-slate-800 mb-2">ยินดีต้อนรับ</h2>
+                        <p class="text-slate-500">กรุณาเข้าสู่ระบบเพื่อจัดการข้อมูล</p>
+                    </div>
+                    <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-5">
+                        <div class="space-y-1">
+                            <label class="text-sm font-bold text-slate-700 ml-1">ชื่อผู้ใช้งาน</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400"><i class="fa-solid fa-user"></i></span>
+                                <input type="text" name="username" class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition outline-none text-slate-700" placeholder="Username / รหัสสาขา" required>
+                            </div>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-sm font-bold text-slate-700 ml-1">รหัสผ่าน</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400"><i class="fa-solid fa-key"></i></span>
+                                <input type="password" name="password" class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition outline-none text-slate-700" placeholder="Password" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-500/30 transition transform active:scale-[0.98] flex items-center justify-center gap-2 group disabled:opacity-70">
+                            <span>เข้าสู่ระบบ</span> <i class="fa-solid fa-arrow-right group-hover:translate-x-1 transition"></i>
+                        </button>
+                    </form>
+                    <div class="mt-8 text-center">
+                        <div class="mt-2 text-xs text-red-500 font-bold hidden bg-red-50 p-2 rounded border border-red-100" id="login-alert">
+                            <i class="fa-solid fa-circle-exclamation"></i> กรุณาใส่ API URL ใน script.js
+                        </div>
+                        <p class="footer-text">© 2026 ADMIN OK</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="w-72 sidebar-gradient text-slate-300 flex flex-col shadow-2xl z-40 hidden md:flex transition-all">
+        <!-- Logo -->
+        <div class="p-6 flex items-center gap-3 border-b border-white/10 bg-black/10">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-lg">
+                <i class="fa-solid fa-car text-lg"></i>
+            </div>
+            <div>
+                <span class="text-lg font-bold text-white tracking-wide block">Repo Stock</span>
+                <span class="text-[10px] text-blue-300 uppercase tracking-wider bg-blue-900/40 px-2 py-0.5 rounded-md">Management</span>
+            </div>
+        </div>
+        
+        <!-- User Profile -->
+        <div class="p-4 border-b border-white/5 bg-white/5 mx-4 mt-4 rounded-xl mb-2">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-r from-emerald-400 to-teal-500 flex items-center justify-center text-white font-bold shadow-md text-lg" id="user-avatar">
+                    <i class="fa-solid fa-user"></i>
+                </div>
+                <div class="overflow-hidden">
+                    <p class="text-sm font-bold text-white truncate" id="display-name">Guest</p>
+                    <p class="text-[11px] text-blue-200 truncate flex items-center gap-1"><i class="fa-solid fa-circle text-[6px] text-emerald-400"></i> <span id="display-role">Online</span></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Menu Items -->
+        <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+            <p class="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Main Menu</p>
+            <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-item w-full text-left px-4 py-3 flex items-center gap-3 group">
+                <i class="fa-solid fa-chart-pie w-5 text-center group-hover:text-blue-400 transition"></i> <span class="font-medium group-hover:text-white transition">แดชบอร์ด</span>
+            </button>
+            <button onclick="switchTab('vehicles')" id="nav-vehicles" class="nav-item w-full text-left px-4 py-3 flex items-center gap-3 group">
+                <i class="fa-solid fa-list-check w-5 text-center group-hover:text-blue-400 transition"></i> <span class="font-medium group-hover:text-white transition">รายชื่อรถยึด</span>
+            </button>
+            
+            <div id="admin-menu" class="hidden pt-4 mt-2 border-t border-white/10">
+                <p class="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Admin Zone</p>
+                <button onclick="switchTab('users')" id="nav-users" class="nav-item w-full text-left px-4 py-3 flex items-center gap-3 group">
+                    <i class="fa-solid fa-users-gear w-5 text-center group-hover:text-blue-400 transition"></i> <span class="font-medium group-hover:text-white transition">จัดการผู้ใช้งาน</span>
+                </button>
+                <button onclick="switchTab('logs')" id="nav-logs" class="nav-item w-full text-left px-4 py-3 flex items-center gap-3 group">
+                    <i class="fa-solid fa-file-shield w-5 text-center group-hover:text-blue-400 transition"></i> <span class="font-medium group-hover:text-white transition">Logs ระบบ</span>
+                </button>
+            </div>
+        </nav>
+        
+        <!-- Bottom Actions -->
+        <div class="p-4 border-t border-white/10 bg-black/20 space-y-2">
+            <button onclick="openChangePasswordModal()" class="w-full text-slate-400 hover:text-white py-2 text-sm font-medium transition flex items-center justify-center gap-2 group">
+                <i class="fa-solid fa-key group-hover:text-blue-400 transition"></i> เปลี่ยนรหัสผ่าน
+            </button>
+            <button onclick="logout()" class="w-full bg-red-500/10 text-red-400 py-2.5 rounded-xl hover:bg-red-500 hover:text-white text-sm font-medium transition flex items-center justify-center gap-2 border border-red-500/20 group">
+                <i class="fa-solid fa-power-off group-hover:scale-110 transition"></i> ออกจากระบบ
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col h-full overflow-hidden bg-[#f8fafc] relative w-full">
+        <!-- Mobile Header -->
+        <header class="md:hidden bg-white border-b border-slate-200 p-4 flex items-center justify-between shadow-sm z-30 sticky top-0">
+            <div class="flex items-center gap-3">
+                <div class="bg-blue-600 text-white w-8 h-8 rounded-lg flex items-center justify-center"><i class="fa-solid fa-car"></i></div>
+                <h1 class="font-bold text-slate-800">Repo Stock</h1>
+            </div>
+            <button onclick="document.getElementById('sidebar').classList.toggle('hidden'); document.getElementById('sidebar').classList.toggle('absolute'); document.getElementById('sidebar').classList.toggle('h-full');" class="text-slate-500"><i class="fa-solid fa-bars text-xl"></i></button>
+        </header>
+
+        <!-- View: Dashboard -->
+        <div id="view-dashboard" class="flex-1 overflow-y-auto p-6 md:p-8 space-y-8 hidden fade-in">
+            <div class="flex justify-between items-end">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-chart-simple text-blue-600"></i> ภาพรวมสต๊อกรถ</h2>
+                </div>
+                <button onclick="refreshCurrentTab()" class="bg-white border border-slate-200 text-slate-600 hover:text-blue-600 px-3 py-1.5 rounded-lg shadow-sm text-sm transition flex items-center gap-2">
+                    <i class="fa-solid fa-rotate"></i> <span class="hidden sm:inline">รีเฟรชข้อมูล</span>
+                </button>
+            </div>
+            
+            <!-- Cards Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Card Total -->
+                <div class="glass-card p-6 border-l-4 border-blue-500 relative overflow-hidden group hover:bg-blue-50/30">
+                    <div class="absolute right-0 top-0 p-4 opacity-10 transform translate-x-2 -translate-y-2"><i class="fa-solid fa-car text-6xl text-blue-600"></i></div>
+                    <div class="relative z-10">
+                        <div class="w-10 h-10 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center mb-3"><i class="fa-solid fa-list-ol"></i></div>
+                        <p class="text-slate-500 text-sm font-bold uppercase tracking-wider">รถทั้งหมด</p>
+                        <h3 class="text-3xl font-bold text-slate-800 mt-1" id="stat-total">0</h3>
+                    </div>
+                </div>
+                <!-- Card Waiting -->
+                <div class="glass-card p-6 border-l-4 border-orange-500 relative overflow-hidden group hover:bg-orange-50/30">
+                    <div class="absolute right-0 top-0 p-4 opacity-10 transform translate-x-2 -translate-y-2"><i class="fa-solid fa-clock text-6xl text-orange-500"></i></div>
+                    <div class="relative z-10">
+                        <div class="w-10 h-10 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center mb-3"><i class="fa-solid fa-pause"></i></div>
+                        <p class="text-slate-500 text-sm font-bold uppercase tracking-wider">รอโยกย้าย</p>
+                        <h3 class="text-3xl font-bold text-slate-800 mt-1" id="stat-waiting">0</h3>
+                    </div>
+                </div>
+                <!-- Card Moved -->
+                <div class="glass-card p-6 border-l-4 border-emerald-500 relative overflow-hidden group hover:bg-emerald-50/30">
+                    <div class="absolute right-0 top-0 p-4 opacity-10 transform translate-x-2 -translate-y-2"><i class="fa-solid fa-truck-arrow-right text-6xl text-emerald-600"></i></div>
+                    <div class="relative z-10">
+                        <div class="w-10 h-10 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center mb-3"><i class="fa-solid fa-truck-moving"></i></div>
+                        <p class="text-slate-500 text-sm font-bold uppercase tracking-wider">โยกย้ายแล้ว</p>
+                        <h3 class="text-3xl font-bold text-slate-800 mt-1" id="stat-moved">0</h3>
+                    </div>
+                </div>
+                 <!-- Card Price -->
+                <div class="glass-card p-6 border-l-4 border-indigo-500 relative overflow-hidden group hover:bg-indigo-50/30">
+                    <div class="absolute right-0 top-0 p-4 opacity-10 transform translate-x-2 -translate-y-2"><i class="fa-solid fa-money-bill-wave text-6xl text-indigo-600"></i></div>
+                    <div class="relative z-10">
+                        <div class="w-10 h-10 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center mb-3"><i class="fa-solid fa-tags"></i></div>
+                        <p class="text-slate-500 text-sm font-bold uppercase tracking-wider">มูลค่ารวม</p>
+                        <h3 class="text-3xl font-bold text-slate-800 mt-1" id="stat-price">0</h3>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Zone Stats -->
+            <div>
+                <h3 class="font-bold text-xl text-slate-800 mb-4 flex items-center gap-2"><i class="fa-solid fa-map-location-dot text-blue-500"></i> สถิติแยกรายเขต (8 เขตแรก)</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="zone-stats-container"></div>
+            </div>
+            
+            <!-- Recent Table -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                    <h3 class="font-bold text-slate-700 flex items-center gap-2"><i class="fa-solid fa-clock-rotate-left text-slate-400"></i> รายการรถล่าสุด</h3>
+                    <button onclick="switchTab('vehicles')" class="text-xs font-bold text-blue-600 hover:text-blue-800 uppercase tracking-wide flex items-center gap-1 transition">ดูทั้งหมด <i class="fa-solid fa-arrow-right"></i></button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left custom-table">
+                        <thead><tr><th class="pl-6">วันที่ยึด</th><th>รุ่น</th><th>ทะเบียน</th><th>สาขา</th><th class="pr-6 text-right">ราคาตั้งขาย</th></tr></thead>
+                        <tbody id="dashboard-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- View: Vehicles List -->
+        <div id="view-vehicles" class="flex-1 overflow-y-auto p-6 md:p-8 space-y-6 hidden fade-in">
+            <div class="flex flex-col xl:flex-row justify-between gap-4 items-start xl:items-center">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-database text-blue-600"></i> รายชื่อรถยึด</h2>
+                </div>
+                <div class="flex flex-wrap gap-2 w-full xl:w-auto items-center">
+                    <button onclick="refreshCurrentTab()" class="bg-white border border-slate-200 text-slate-600 hover:text-blue-600 hover:border-blue-400 px-3 py-2 rounded-lg shadow-sm text-sm transition" title="รีเฟรช"><i class="fa-solid fa-rotate"></i></button>
+                    
+                    <!-- Filters -->
+                    <div class="relative group" id="zone-filter-container">
+                        <button onclick="toggleFilter('zone')" class="bg-white border border-slate-200 text-slate-700 hover:border-blue-400 px-4 py-2 rounded-xl shadow-sm text-sm font-medium flex items-center gap-2"><i class="fa-solid fa-map"></i> กรองเขต <i class="fa-solid fa-chevron-down text-xs ml-1"></i></button>
+                        <div id="filter-zone-menu" class="hidden absolute top-full left-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-xl z-20 p-2 dropdown-menu"></div>
+                    </div>
+                    <div class="relative group" id="branch-filter-container">
+                        <button onclick="toggleFilter('branch')" class="bg-white border border-slate-200 text-slate-700 hover:border-blue-400 px-4 py-2 rounded-xl shadow-sm text-sm font-medium flex items-center gap-2"><i class="fa-solid fa-building"></i> กรองสาขา <i class="fa-solid fa-chevron-down text-xs ml-1"></i></button>
+                        <div id="filter-branch-menu" class="hidden absolute top-full left-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-xl z-20 p-2 dropdown-menu"></div>
+                    </div>
+                    <div class="relative group" id="status-filter-container">
+                        <button onclick="toggleFilter('status')" class="bg-white border border-slate-200 text-slate-700 hover:border-blue-400 px-4 py-2 rounded-xl shadow-sm text-sm font-medium flex items-center gap-2"><i class="fa-solid fa-bars-progress"></i> กรองสถานะ <i class="fa-solid fa-chevron-down text-xs ml-1"></i></button>
+                        <div id="filter-status-menu" class="hidden absolute top-full left-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-xl z-20 p-2 dropdown-menu"></div>
+                    </div>
+                    
+                    <input type="text" id="search-vehicle" onkeyup="filterVehicles()" placeholder="ค้นหาทะเบียน/รุ่น..." class="border p-2 rounded-xl w-full md:w-56 bg-slate-50 focus:bg-white transition">
+                    <button onclick="openVehicleModal()" class="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-medium shadow flex items-center gap-2 hover:bg-blue-700 transition"><i class="fa-solid fa-plus"></i> เพิ่มรถ</button>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-2xl shadow-sm overflow-hidden border border-slate-200">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left custom-table">
+                        <thead>
+                            <tr>
+                                <th class="pl-6 w-24">เขต</th>
+                                <th>วันที่ยึด</th>
+                                <th>เลขที่สัญญา</th>
+                                <th>ชื่อลูกค้า</th>
+                                <th>ยี่ห้อ / รุ่น</th>
+                                <th>สาขา</th>
+                                <th>สถานที่จอด</th> 
+                                <th class="text-center">สถานะ</th>
+                                <th class="text-right">ราคาขาย</th>
+                                <th class="pr-6 text-center w-32">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="vehicle-table-body" class="divide-y divide-slate-100"></tbody>
+                    </table>
+                </div>
+                <div id="empty-state" class="hidden p-12 text-center text-slate-400">
+                    <i class="fa-regular fa-folder-open text-4xl mb-3 text-slate-300"></i>
+                    <p>ไม่พบข้อมูล</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- View: Vehicle Detail -->
+        <div id="view-vehicle-detail" class="hidden absolute inset-0 z-40 bg-[#f8fafc] overflow-y-auto fade-in">
+            <div class="sticky top-0 bg-white/90 backdrop-blur-md border-b border-slate-200 px-6 py-4 flex justify-between items-center shadow-sm z-10">
+                <div class="flex items-center gap-4">
+                    <button onclick="closeDetailView()" class="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition shadow-sm"><i class="fa-solid fa-arrow-left"></i></button>
+                    <div><h2 class="text-xl font-bold text-slate-800" id="detail-plate">-</h2><span id="detail-status-badge">-</span></div>
+                </div>
+                <button id="btn-edit-detail" class="bg-white border border-slate-300 text-slate-700 hover:border-blue-500 hover:text-blue-600 px-4 py-2 rounded-lg font-bold shadow-sm transition flex items-center gap-2 text-sm"><i class="fa-regular fa-pen-to-square"></i> <span class="hidden sm:inline">แก้ไขข้อมูล</span></button>
+            </div>
+            <div class="p-6 md:p-10 max-w-6xl mx-auto space-y-8">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div id="detail-img-1" class="image-preview-detail shadow-sm cursor-zoom-in"></div>
+                    <div id="detail-img-2" class="image-preview-detail shadow-sm cursor-zoom-in"></div>
+                    <div id="detail-img-3" class="image-preview-detail shadow-sm cursor-zoom-in"></div>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div class="lg:col-span-2 space-y-6">
+                        <div class="glass-card p-6 border-l-4 border-blue-500">
+                            <h3 class="font-bold mb-4 border-b pb-2 text-blue-800 flex items-center gap-2"><i class="fa-solid fa-file-contract"></i> สัญญา/ลูกค้า</h3>
+                            <div class="grid grid-cols-2 gap-4 text-sm">
+                                <div><small class="text-slate-400">สัญญา</small><p id="detail-contract">-</p></div>
+                                <div><small class="text-slate-400">ลูกค้า</small><p id="detail-customer">-</p></div>
+                                <div><small class="text-slate-400">วันที่ยึด</small><p id="detail-seize-date">-</p></div>
+                                <div><small class="text-slate-400">วันบันทึกข้อมูล</small><p id="detail-timestamp" class="text-blue-600 font-medium">-</p></div>
+                            </div>
+                        </div>
+                        <div class="glass-card p-6 border-l-4 border-orange-500">
+                            <h3 class="font-bold mb-4 border-b pb-2 text-orange-600 flex items-center gap-2"><i class="fa-solid fa-location-dot"></i> ที่ตั้งและการโยกย้าย</h3>
+                            <div class="grid grid-cols-2 gap-4 text-sm">
+                                <div><small class="text-slate-400">รหัสสาขา</small><p id="detail-branch-code">-</p></div>
+                                <div><small class="text-slate-400">ชื่อสาขา</small><p id="detail-branch">-</p></div>
+                                <div><small class="text-slate-400">เขตพื้นที่</small><p id="detail-area">-</p></div>
+                                <div><small class="text-slate-400">จุดจอด</small><p id="detail-location">-</p></div>
+                                <div class="col-span-2 border-t pt-2 mt-2">
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div><small class="text-slate-400">วันที่โยก</small><p id="detail-move-date">-</p></div>
+                                        <div><small class="text-slate-400">โยกไปที่</small><p id="detail-move-to">-</p></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="glass-card p-6 border-t-4 border-emerald-500 sticky top-24 shadow-lg">
+                            <h3 class="font-bold mb-4 flex items-center gap-2"><i class="fa-solid fa-money-bill"></i> การเงิน</h3>
+                            <div class="text-3xl font-bold text-emerald-600" id="detail-price">0</div>
+                            <div class="mt-4 pt-4 border-t flex justify-between"><span>ยอดจัด</span><span id="detail-finance">0</span></div>
+                            <div class="flex justify-between mt-2"><span>AR คงเหลือ</span><span id="detail-ar">0</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- View: Users & Logs -->
+        <div id="view-users" class="flex-1 overflow-y-auto p-6 md:p-8 space-y-6 hidden fade-in">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-slate-800">จัดการผู้ใช้งาน</h2>
+                <div class="flex gap-2">
+                    <button onclick="refreshCurrentTab()" class="bg-white border border-slate-200 text-slate-600 hover:text-blue-600 px-3 py-2 rounded-lg shadow-sm transition"><i class="fa-solid fa-rotate"></i></button>
+                    <button onclick="openUserModal()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition shadow-lg"><i class="fa-solid fa-user-plus"></i> เพิ่มผู้ใช้</button>
+                </div>
+            </div>
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <table class="w-full text-sm text-left custom-table">
+                    <thead><tr><th class="pl-6">Username</th><th>ชื่อ-นามสกุล</th><th>Role</th><th>สถานะ</th><th class="text-right pr-6">Action</th></tr></thead>
+                    <tbody id="users-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+        <div id="view-logs" class="flex-1 overflow-y-auto p-6 md:p-8 space-y-6 hidden fade-in">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">Logs</h2>
+                <button onclick="refreshCurrentTab()" class="bg-white border border-slate-200 text-slate-600 hover:text-blue-600 px-3 py-2 rounded-lg shadow-sm transition"><i class="fa-solid fa-rotate"></i></button>
+            </div>
+            <div class="bg-white rounded-2xl shadow-sm overflow-hidden"><table class="w-full text-sm text-left custom-table"><thead><tr><th class="pl-6">Time</th><th>User</th><th>Action</th><th class="pr-6">Detail</th></tr></thead><tbody id="logs-table-body"></tbody></table></div>
+        </div>
+    </main>
+
+    <!-- Modals -->
+
+    <!-- Modal: Vehicle Form -->
+    <div id="vehicle-modal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-black/50 flex items-center justify-center p-0 md:p-4 font-sarabun backdrop-blur-sm">
+        <div class="bg-slate-50 w-full max-w-7xl h-full md:h-auto md:max-h-[95vh] overflow-y-auto md:rounded-xl shadow-2xl relative animate-[fadeIn_0.2s_ease-out] border border-white/20">
+            <button onclick="closeModal('vehicle-modal')" class="absolute top-4 right-4 w-8 h-8 bg-white text-slate-400 hover:text-red-500 rounded-full flex items-center justify-center shadow-sm z-20 transition"><i class="fa-solid fa-xmark"></i></button>
+            <div class="p-6 md:p-8">
+                <div class="flex items-center gap-4 mb-6">
+                    <div class="w-14 h-14 flex items-center justify-center bg-blue-100 rounded-2xl shadow-sm border border-blue-200"><i class="fa-solid fa-warehouse text-3xl text-blue-600"></i></div>
+                    <div><h1 class="text-2xl font-bold text-slate-800">บันทึกข้อมูลรถยึด</h1><p class="text-sm text-slate-500">ระบบฐานข้อมูลกลาง</p></div>
+                </div>
+                <form id="vehicleForm" onsubmit="saveVehicleData(event)">
+                    <input type="hidden" name="rec_id">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Left Column -->
+                        <div class="space-y-6">
+                            <div class="glass-card p-5">
+                                <div class="font-bold text-blue-600 flex items-center gap-2 mb-4 border-b pb-2"><i class="fa-solid fa-building"></i> 1. ข้อมูลสาขาและเขตพื้นที่</div>
+                                <div class="grid grid-cols-2 gap-4 mb-4">
+                                    <div><label class="text-xs font-bold text-slate-500">วันที่ทำรายการ</label><input type="date" name="seize_date" required class="form-control"></div>
+                                    <div>
+                                        <label class="text-xs font-bold text-slate-500">เขตพื้นที่</label>
+                                        <select name="area_code" required class="form-control">
+                                            <option value="K012">K012</option><option value="K122">K122</option><option value="K189">K189</option>
+                                            <option value="K195">K195</option><option value="K196">K196</option><option value="K247">K247</option>
+                                            <option value="K273">K273</option><option value="K358">K358</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div><label class="text-xs font-bold text-slate-500">รหัสสาขา</label><input type="text" name="branch_code" required class="form-control uppercase text-center"></div>
+                                    <div><label class="text-xs font-bold text-slate-500">ชื่อสาขา</label><input type="text" name="branch_name" class="form-control"></div>
+                                    <div class="col-span-2"><label class="text-xs font-bold text-slate-500">สถานที่จอดปัจจุบัน</label><input type="text" name="location" class="form-control"></div>
+                                </div>
+                            </div>
+
+                            <div class="glass-card p-5">
+                                <div class="font-bold text-indigo-600 flex items-center gap-2 mb-4 border-b pb-2"><i class="fa-solid fa-file-contract"></i> 2. ข้อมูลสัญญาและลูกค้า</div>
+                                <div class="grid grid-cols-2 gap-4 mb-4">
+                                    <div><label class="text-xs font-bold text-slate-500">เลขที่สัญญา</label><input type="text" name="contract_no" required class="form-control font-bold text-blue-900 bg-blue-50"></div>
+                                    <div><label class="text-xs font-bold text-slate-500">สถานะโยกรถ</label><select name="status" id="transferStatus" class="form-control" onchange="toggleTransferDate()"><option value="รอโยกย้าย">รอโยกย้าย</option><option value="โยกย้ายแล้ว">โยกย้ายแล้ว</option><option value="sold">ขายแล้ว</option></select></div>
+                                </div>
+                                <div class="mb-4"><label class="text-xs font-bold text-slate-500">ชื่อลูกค้า</label><input type="text" name="customer_name" class="form-control"></div>
+                                <div id="transferDateGroup" class="hidden grid grid-cols-2 gap-4 bg-orange-50 p-3 rounded-lg border border-orange-100">
+                                    <div class="col-span-2 text-xs font-bold text-orange-600 uppercase mb-1">ข้อมูลการโยกย้าย</div>
+                                    <div><label class="text-[10px] font-bold text-slate-500">วันที่โยก</label><input type="date" name="move_date" class="form-control bg-white"></div>
+                                    <div><label class="text-[10px] font-bold text-slate-500">โยกไปที่</label><input type="text" name="move_to" class="form-control bg-white"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Column -->
+                        <div class="space-y-6">
+                            <div class="glass-card p-5">
+                                <div class="font-bold text-orange-600 flex items-center gap-2 mb-4 border-b pb-2"><i class="fa-solid fa-car-side"></i> 3. รายละเอียดรถยนต์</div>
+                                <div class="mb-4 flex gap-4">
+                                    <div class="w-1/2"><label class="text-xs font-bold text-slate-500">ยี่ห้อ</label><input type="text" name="brand" required class="form-control"></div>
+                                    <div class="w-1/2"><label class="text-xs font-bold text-slate-500">รุ่น</label><input type="text" name="model" required class="form-control"></div>
+                                </div>
+                                <div class="flex gap-4">
+                                    <div class="w-1/2"><label class="text-xs font-bold text-slate-500">จังหวัด</label><input type="text" id="plateProvince" list="provinceList" class="form-control" placeholder="เลือกจังหวัด"></div>
+                                    <div class="w-1/2"><label class="text-xs font-bold text-slate-500">เลขทะเบียน</label><input type="text" id="plateNumber" class="form-control text-center font-bold"></div>
+                                    <datalist id="provinceList"></datalist>
+                                </div>
+                            </div>
+
+                            <div class="glass-card p-5">
+                                <div class="font-bold text-emerald-600 flex items-center gap-2 mb-4 border-b pb-2"><i class="fa-solid fa-money-bill-wave"></i> 4. ข้อมูลสินเชื่อ</div>
+                                <div class="space-y-4">
+                                    <div><label class="text-xs font-bold text-slate-500">ราคาขาย</label><input type="text" name="price" onkeyup="formatNumber(this)" class="form-control text-right text-lg font-bold text-emerald-600"></div>
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div><label class="text-xs font-bold text-slate-500">ยอดจัด</label><input type="text" name="finance_amount" onkeyup="formatNumber(this)" class="form-control text-right"></div>
+                                        <div><label class="text-xs font-bold text-slate-500">AR คงเหลือ</label><input type="text" name="ar_balance" onkeyup="formatNumber(this)" class="form-control text-right"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="glass-card p-5">
+                                <div class="font-bold text-slate-600 flex items-center gap-2 mb-4 border-b pb-2"><i class="fa-solid fa-camera"></i> 5. รูปภาพหลักฐาน</div>
+                                <div><label class="text-xs font-bold text-slate-500 mb-1 block text-center">หน้าขวา</label><div class="upload-zone group" id="zone1" onclick="triggerFile('file1')"><img id="preview1" class="absolute w-full h-full object-contain hidden z-10 bg-white p-1 rounded-lg"><div class="transition transform group-hover:scale-110"><i class="fa-solid fa-cloud-arrow-up text-3xl text-slate-300"></i></div><input type="file" id="file1" accept="image/*" class="hidden" onchange="previewImage(this, '1')"><div class="absolute top-1 right-1 bg-red-500 text-white w-6 h-6 rounded-full items-center justify-center cursor-pointer hidden z-20" id="remove1" onclick="removeImage(event, '1')">&times;</div></div><input type="hidden" name="img_front_right_old"></div>
+                                <div class="grid grid-cols-2 gap-4 mt-2">
+                                    <div><label class="text-xs font-bold text-slate-500 mb-1 block text-center">หลังขวา</label><div class="upload-zone h-32 group" id="zone2" onclick="triggerFile('file2')"><img id="preview2" class="absolute w-full h-full object-contain hidden z-10 bg-white p-1 rounded-lg"><div class="transition transform group-hover:scale-110"><i class="fa-solid fa-cloud-arrow-up text-2xl text-slate-300"></i></div><input type="file" id="file2" accept="image/*" class="hidden" onchange="previewImage(this, '2')"></div><input type="hidden" name="img_back_right_old"></div>
+                                    <div><label class="text-xs font-bold text-slate-500 mb-1 block text-center">ด้านข้าง</label><div class="upload-zone h-32 group" id="zone3" onclick="triggerFile('file3')"><img id="preview3" class="absolute w-full h-full object-contain hidden z-10 bg-white p-1 rounded-lg"><div class="transition transform group-hover:scale-110"><i class="fa-solid fa-cloud-arrow-up text-2xl text-slate-300"></i></div><input type="file" id="file3" accept="image/*" class="hidden" onchange="previewImage(this, '3')"></div><input type="hidden" name="img_side_old"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-6 flex justify-end gap-3 pt-4 border-t border-slate-200"><button type="button" onclick="closeModal('vehicle-modal')" class="px-6 py-3 rounded-lg bg-slate-200 font-bold">ยกเลิก</button><button type="submit" id="submitBtn" class="px-8 py-3 rounded-lg bg-blue-700 text-white font-bold shadow-lg">บันทึกข้อมูล</button></div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: User -->
+    <div id="user-modal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
+            <h3 class="font-bold text-xl mb-6 flex items-center gap-3"><i class="fa-solid fa-users"></i> จัดการผู้ใช้งาน</h3>
+            <form id="userForm" onsubmit="saveUserData(event)" class="space-y-4">
+                <input type="hidden" name="u_old_username">
+                <input type="text" name="u_username" class="form-control" placeholder="Username" required>
+                <input type="password" name="u_password" class="form-control" placeholder="Password (ปล่อยว่างถ้าไม่เปลี่ยน)">
+                <input type="text" name="u_name" class="form-control" placeholder="Name" required>
+                <select name="u_role" class="form-control"><option value="Admin">Admin</option><option value="Regional Manager">Regional Manager</option><option value="District Manager">District Manager</option><option value="Branch User">Branch User</option></select>
+                <div class="pt-4 flex justify-end gap-3"><button type="button" onclick="closeModal('user-modal')" class="px-4 py-2 bg-slate-200 rounded">ยกเลิก</button><button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded">บันทึก</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Change Password -->
+    <div id="password-modal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 relative overflow-hidden">
+             <div id="pwd-loader" class="absolute inset-0 bg-white/80 z-20 hidden flex flex-col items-center justify-center"><i class="fa-solid fa-circle-notch fa-spin text-4xl text-blue-600"></i><p class="text-sm text-blue-600 font-bold mt-2">กำลังบันทึก...</p></div>
+            <h3 class="font-bold text-xl mb-4 text-slate-800 flex items-center gap-2"><i class="fa-solid fa-key text-blue-600"></i> เปลี่ยนรหัสผ่าน</h3>
+            <form id="passwordForm" onsubmit="handleChangePassword(event)" class="space-y-4">
+                <div><label class="text-xs font-bold text-slate-500">รหัสผ่านเดิม</label><div class="relative"><input type="password" name="old_password" id="old_password" class="form-control pr-10" required><button type="button" onclick="togglePass('old_password', this)" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"><i class="fa-solid fa-eye"></i></button></div></div>
+                <div><label class="text-xs font-bold text-slate-500">รหัสผ่านใหม่</label><div class="relative"><input type="password" name="new_password" id="new_password" class="form-control pr-10" required minlength="4" onkeyup="checkPwdMatch()"><button type="button" onclick="togglePass('new_password', this)" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"><i class="fa-solid fa-eye"></i></button></div></div>
+                <div><label class="text-xs font-bold text-slate-500 flex justify-between">ยืนยันรหัสผ่านใหม่ <span id="match-msg" class="text-[10px] hidden"></span></label><div class="relative"><input type="password" name="confirm_password" id="confirm_password" class="form-control pr-10" required minlength="4" onkeyup="checkPwdMatch()"><button type="button" onclick="togglePass('confirm_password', this)" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"><i class="fa-solid fa-eye"></i></button></div></div>
+                <div class="pt-4 flex justify-end gap-2"><button type="button" onclick="closeModal('password-modal')" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg">ยกเลิก</button><button type="submit" id="btn-save-pwd" class="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50">ยืนยัน</button></div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Lightbox -->
+    <div id="lightbox-modal" class="hidden fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4" onclick="closeLightbox()">
+        <button class="absolute top-4 right-4 text-white text-3xl hover:text-gray-300">&times;</button>
+        <img id="lightbox-img" src="" class="max-h-[90vh] max-w-[90vw] rounded shadow-lg object-contain">
+    </div>
+
+    <!-- Link to Custom JS -->
+    <script src="script.js"></script>
+</body>
+</html>
