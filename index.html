@@ -1,0 +1,1424 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
+    <title>ระบบสต๊อกรถยึด (Repo Stock)</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <style>
+        body { font-family: 'Kanit', sans-serif; background-color: #f0f2f5; }
+        .font-sarabun { font-family: 'Sarabun', sans-serif; }
+        
+        /* Modern Gradient Sidebar */
+        .sidebar-gradient {
+            background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%);
+        }
+        
+        /* Glassmorphism & Cards */
+        .glass-card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            border-radius: 1rem;
+            transition: all 0.3s ease;
+        }
+        .glass-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Form Inputs */
+        .form-control {
+            width: 100%; height: 42px; padding: 0.5rem 1rem;
+            border: 1px solid #cbd5e1; border-radius: 0.5rem;
+            background-color: #fff; transition: all 0.2s;
+            font-family: 'Sarabun', sans-serif;
+        }
+        .form-control:focus {
+            outline: none; border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+        /* Readonly State */
+        .form-control:read-only { background-color: #f1f5f9; color: #94a3b8; cursor: not-allowed; }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Navigation */
+        .nav-item {
+            border-radius: 0.75rem; margin-bottom: 0.25rem; transition: all 0.2s;
+        }
+        .nav-item:hover { background-color: rgba(255, 255, 255, 0.1); }
+        .nav-item.active {
+            background: linear-gradient(90deg, rgba(59, 130, 246, 0.2) 0%, rgba(59, 130, 246, 0.05) 100%);
+            color: #60a5fa; border-left: 3px solid #60a5fa;
+        }
+
+        /* Upload Zone */
+        .upload-zone {
+            border: 2px dashed #cbd5e1; border-radius: 12px; height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; background-color: #f8fafc; transition: all 0.2s; position: relative; overflow: hidden;
+        }
+        .upload-zone:hover { border-color: #3b82f6; background-color: #eff6ff; }
+
+        /* Animations */
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; opacity: 0; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Table */
+        .custom-table th {
+            background-color: #f8fafc; color: #475569;
+            font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em;
+            padding: 1rem; border-bottom: 1px solid #e2e8f0; white-space: nowrap;
+        }
+        .custom-table td {
+            padding: 1rem; border-bottom: 1px solid #f1f5f9; vertical-align: middle; color: #334155;
+        }
+        .custom-table tbody tr:hover { background-color: #f8fafc; }
+        .custom-table tr:last-child td { border-bottom: none; }
+        
+        .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); backdrop-filter: blur(4px); z-index: 50; display: flex; justify-content: center; align-items: center; flex-direction: column;}
+        
+        /* Image Preview */
+        .image-preview-detail { 
+            aspect-ratio: 16/9; background-color: #f1f5f9; 
+            background-size: cover; background-position: center; 
+            border-radius: 12px; border: 1px solid #e2e8f0; 
+            transition: all 0.3s;
+        }
+        .image-preview-detail:hover { transform: scale(1.02); }
+        
+        /* Footer */
+        .footer-text { font-size: 0.7rem; color: #94a3b8; text-align: center; margin-top: 2rem; }
+
+        /* NEW Loader Animation */
+        .loader {
+            position: relative;
+            width: 164px;
+            height: 164px;
+            border-radius: 50%;
+            animation: rotate 0.75s linear infinite;
+        }
+        .loader::before {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 40px;
+            border: 1px solid #FF3D00;
+            border-width: 12px 2px 7px;
+            border-radius: 2px 2px 1px 1px;
+            box-sizing: border-box;
+            transform: rotate(45deg) translate(24px, -10px);
+            background-image: linear-gradient(#FF3D00 20px, transparent 0),
+            linear-gradient(#FF3D00 30px, transparent 0),
+            linear-gradient(#FF3D00 30px, transparent 0);
+            background-size: 10px 12px , 1px 30px, 1px 30px;
+            background-repeat: no-repeat;
+            background-position: center , 12px 0px , 3px 0px;
+        }
+        .loader::after {
+            content: '';
+            position: absolute;
+            height: 4px;
+            width: 4px;
+            left: 20px;
+            top: 47px;
+            border-radius: 50%;
+            color: #Fff;
+            box-shadow: -4px 7px 2px, -7px 16px 3px 1px,
+            -11px 24px 4px 1px, -6px 24px 4px 1px,
+            -14px 35px 6px 2px, -5px 36px 8px 2px,
+            -5px 45px 8px 2px, -14px 49px 8px 2px,
+            6px 60px 11px 1px, -11px 66px 11px 1px,
+            11px 75px 13px, -1px 82px 15px;
+        }
+
+        @keyframes rotate {
+            to{transform:rotate(360deg)}
+        }
+        
+        /* Multi-select Dropdown */
+        .dropdown-menu {
+            max-height: 300px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+        }
+        .checkbox-item:hover {
+            background-color: #f1f5f9;
+        }
+    </style>
+</head>
+<body class="text-slate-800 h-screen overflow-hidden flex font-kanit">
+
+    <!-- Loading Spinner (New) -->
+    <div id="loader" class="loading-overlay hidden">
+        <span class="loader"></span>
+        <p class="mt-6 text-slate-500 font-medium animate-pulse tracking-wide">กำลังประมวลผล...</p>
+    </div>
+
+    <!-- Login Page -->
+    <div id="login-view" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-100 p-4 font-sarabun" 
+         style="background-image: radial-gradient(#cbd5e1 1px, transparent 1px); background-size: 24px 24px;">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col md:flex-row h-auto md:h-[600px] border border-white/50">
+            <!-- Left: Brand -->
+            <div class="w-full md:w-1/2 bg-gradient-to-br from-blue-900 to-indigo-900 text-white p-12 flex flex-col justify-center items-center relative overflow-hidden">
+                <div class="absolute top-[-50px] left-[-50px] w-60 h-60 bg-blue-500/20 rounded-full blur-3xl"></div>
+                <div class="absolute bottom-[-50px] right-[-50px] w-80 h-80 bg-purple-500/20 rounded-full blur-3xl"></div>
+                <div class="relative z-10 text-center">
+                    <div class="w-24 h-24 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center mb-6 mx-auto shadow-inner border border-white/20">
+                        <i class="fa-solid fa-car-side text-5xl text-white drop-shadow-md"></i>
+                    </div>
+                    <h1 class="text-4xl font-bold mb-2 tracking-tight text-white">Repo Stock</h1>
+                    <div class="h-1 w-20 bg-blue-400 mx-auto mb-4 rounded-full"></div>
+                    <p class="text-blue-100 text-lg font-light">ระบบบริหารจัดการรถยึดครบวงจร</p>
+                    <div class="mt-8 space-y-2 text-sm text-blue-200/80 text-left inline-block">
+                        <div class="flex items-center gap-3"><i class="fa-solid fa-shield-halved text-emerald-400"></i> ปลอดภัยและแม่นยำ</div>
+                        <div class="flex items-center gap-3"><i class="fa-solid fa-chart-line text-emerald-400"></i> ติดตามสถานะ Real-time</div>
+                        <div class="flex items-center gap-3"><i class="fa-solid fa-cloud text-emerald-400"></i> บันทึกภาพลง Cloud อัตโนมัติ</div>
+                    </div>
+                </div>
+            </div>
+            <!-- Right: Form -->
+            <div class="w-full md:w-1/2 p-10 md:p-14 flex flex-col justify-center bg-white relative">
+                <div class="max-w-sm mx-auto w-full">
+                    <div class="mb-8">
+                        <h2 class="text-3xl font-bold text-slate-800 mb-2">ยินดีต้อนรับ</h2>
+                        <p class="text-slate-500">กรุณาเข้าสู่ระบบเพื่อจัดการข้อมูล</p>
+                    </div>
+                    <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-5">
+                        <div class="space-y-1">
+                            <label class="text-sm font-bold text-slate-700 ml-1">ชื่อผู้ใช้งาน</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400"><i class="fa-solid fa-user"></i></span>
+                                <input type="text" name="username" class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition outline-none text-slate-700" placeholder="Username / รหัสสาขา" required>
+                            </div>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-sm font-bold text-slate-700 ml-1">รหัสผ่าน</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400"><i class="fa-solid fa-key"></i></span>
+                                <input type="password" name="password" class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition outline-none text-slate-700" placeholder="Password" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-500/30 transition transform active:scale-[0.98] flex items-center justify-center gap-2 group disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none">
+                            <span>เข้าสู่ระบบ</span> <i class="fa-solid fa-arrow-right group-hover:translate-x-1 transition"></i>
+                        </button>
+                    </form>
+                    <div class="mt-8 text-center">
+                        <div class="inline-flex items-center gap-2 px-3 py-1 bg-slate-50 rounded-full border border-slate-100 text-xs text-slate-400">
+                            <i class="fa-solid fa-lock"></i> Secured System v2.1
+                        </div>
+                        <div class="mt-2 text-xs text-red-500 font-bold hidden bg-red-50 p-2 rounded border border-red-100" id="login-alert">
+                            <i class="fa-solid fa-circle-exclamation"></i> กรุณาใส่ API URL
+                        </div>
+                        <p class="footer-text">© 2026 ADMIN OK</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="w-72 sidebar-gradient text-slate-300 flex flex-col shadow-2xl z-40 hidden md:flex transition-all">
+        <!-- Logo -->
+        <div class="p-6 flex items-center gap-3 border-b border-white/10 bg-black/10">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-lg">
+                <i class="fa-solid fa-car text-lg"></i>
+            </div>
+            <div>
+                <span class="text-lg font-bold text-white tracking-wide block">Repo Stock</span>
+                <span class="text-[10px] text-blue-300 uppercase tracking-wider bg-blue-900/40 px-2 py-0.5 rounded-md">Management</span>
+            </div>
+        </div>
+        
+        <!-- User Profile (Top) -->
+        <div class="p-4 border-b border-white/5 bg-white/5 mx-4 mt-4 rounded-xl mb-2">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-r from-emerald-400 to-teal-500 flex items-center justify-center text-white font-bold shadow-md text-lg" id="user-avatar">
+                    <i class="fa-solid fa-user"></i>
+                </div>
+                <div class="overflow-hidden">
+                    <p class="text-sm font-bold text-white truncate" id="display-name">Guest</p>
+                    <p class="text-[11px] text-blue-200 truncate flex items-center gap-1"><i class="fa-solid fa-circle text-[6px] text-emerald-400"></i> <span id="display-role">Online</span></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Menu -->
+        <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+            <p class="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Main Menu</p>
+            <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-item w-full text-left px-4 py-3 flex items-center gap-3 group">
+                <i class="fa-solid fa-chart-pie w-5 text-center group-hover:text-blue-400 transition"></i> <span class="font-medium group-hover:text-white transition">แดชบอร์ด</span>
+            </button>
+            <button onclick="switchTab('vehicles')" id="nav-vehicles" class="nav-item w-full text-left px-4 py-3 flex items-center gap-3 group">
+                <i class="fa-solid fa-list-check w-5 text-center group-hover:text-blue-400 transition"></i> <span class="font-medium group-hover:text-white transition">รายชื่อรถยึด</span>
+            </button>
+            
+            <div id="admin-menu" class="hidden pt-4 mt-2 border-t border-white/10">
+                <p class="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Admin Zone</p>
+                <button onclick="switchTab('users')" id="nav-users" class="nav-item w-full text-left px-4 py-3 flex items-center gap-3 group">
+                    <i class="fa-solid fa-users-gear w-5 text-center group-hover:text-blue-400 transition"></i> <span class="font-medium group-hover:text-white transition">จัดการผู้ใช้งาน</span>
+                </button>
+                <button onclick="switchTab('logs')" id="nav-logs" class="nav-item w-full text-left px-4 py-3 flex items-center gap-3 group">
+                    <i class="fa-solid fa-file-shield w-5 text-center group-hover:text-blue-400 transition"></i> <span class="font-medium group-hover:text-white transition">Logs ระบบ</span>
+                </button>
+            </div>
+        </nav>
+        
+        <!-- Footer in Sidebar -->
+        <div class="p-4 border-t border-white/10 text-center text-[10px] text-slate-500">
+             © 2026 ADMIN OK
+        </div>
+
+        <!-- NEW: Change Password & Logout Group -->
+        <div class="p-4 border-t border-white/10 bg-black/20 space-y-2">
+            <button onclick="openChangePasswordModal()" class="w-full text-slate-400 hover:text-white py-2 text-sm font-medium transition flex items-center justify-center gap-2 group">
+                <i class="fa-solid fa-key group-hover:text-blue-400 transition"></i> เปลี่ยนรหัสผ่าน
+            </button>
+            <button onclick="logout()" class="w-full bg-red-500/10 text-red-400 py-2.5 rounded-xl hover:bg-red-500 hover:text-white text-sm font-medium transition flex items-center justify-center gap-2 border border-red-500/20 group">
+                <i class="fa-solid fa-power-off group-hover:scale-110 transition"></i> ออกจากระบบ
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col h-full overflow-hidden bg-[#f8fafc] relative w-full">
+        <!-- Mobile Header -->
+        <header class="md:hidden bg-white border-b border-slate-200 p-4 flex items-center justify-between shadow-sm z-30 sticky top-0">
+            <div class="flex items-center gap-3">
+                <div class="bg-blue-600 text-white w-8 h-8 rounded-lg flex items-center justify-center"><i class="fa-solid fa-car"></i></div>
+                <h1 class="font-bold text-slate-800">Repo Stock</h1>
+            </div>
+            <button onclick="document.getElementById('sidebar').classList.toggle('hidden'); document.getElementById('sidebar').classList.toggle('absolute'); document.getElementById('sidebar').classList.toggle('h-full');" class="text-slate-500"><i class="fa-solid fa-bars text-xl"></i></button>
+        </header>
+
+        <!-- Dashboard -->
+        <div id="view-dashboard" class="flex-1 overflow-y-auto p-6 md:p-8 space-y-8 hidden fade-in">
+            <div class="flex justify-between items-end">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-chart-simple text-blue-600"></i> ภาพรวมสต๊อกรถ</h2>
+                    <p class="text-slate-500 text-sm">สถิติและข้อมูลรถยึดทั้งหมดในระบบ</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button onclick="refreshCurrentTab()" class="bg-white border border-slate-200 text-slate-600 hover:text-blue-600 hover:border-blue-400 px-3 py-1.5 rounded-lg shadow-sm text-sm transition flex items-center gap-2">
+                        <i class="fa-solid fa-rotate"></i> <span class="hidden sm:inline">รีเฟรชข้อมูล</span>
+                    </button>
+                    <div class="text-xs text-slate-400 hidden sm:block"><i class="fa-regular fa-clock"></i> อัปเดตล่าสุด: วันนี้</div>
+                </div>
+            </div>
+            
+            <!-- Stat Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- 1. Total -->
+                <div class="glass-card p-6 border-l-4 border-blue-500 relative overflow-hidden group hover:bg-blue-50/30">
+                    <div class="absolute right-0 top-0 p-4 opacity-10 transform translate-x-2 -translate-y-2"><i class="fa-solid fa-car text-6xl text-blue-600"></i></div>
+                    <div class="relative z-10">
+                        <div class="w-10 h-10 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center mb-3"><i class="fa-solid fa-list-ol"></i></div>
+                        <p class="text-slate-500 text-sm font-bold uppercase tracking-wider">รถทั้งหมด</p>
+                        <h3 class="text-3xl font-bold text-slate-800 mt-1" id="stat-total">0</h3>
+                    </div>
+                </div>
+                <!-- 2. Waiting (รอโยก) -->
+                <div class="glass-card p-6 border-l-4 border-orange-500 relative overflow-hidden group hover:bg-orange-50/30">
+                    <div class="absolute right-0 top-0 p-4 opacity-10 transform translate-x-2 -translate-y-2"><i class="fa-solid fa-clock text-6xl text-orange-500"></i></div>
+                    <div class="relative z-10">
+                        <div class="w-10 h-10 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center mb-3"><i class="fa-solid fa-pause"></i></div>
+                        <p class="text-slate-500 text-sm font-bold uppercase tracking-wider">รอโยกย้าย</p>
+                        <h3 class="text-3xl font-bold text-slate-800 mt-1" id="stat-waiting">0</h3>
+                    </div>
+                </div>
+                <!-- 3. Moved (โยกแล้ว) -->
+                <div class="glass-card p-6 border-l-4 border-emerald-500 relative overflow-hidden group hover:bg-emerald-50/30">
+                    <div class="absolute right-0 top-0 p-4 opacity-10 transform translate-x-2 -translate-y-2"><i class="fa-solid fa-truck-arrow-right text-6xl text-emerald-600"></i></div>
+                    <div class="relative z-10">
+                        <div class="w-10 h-10 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center mb-3"><i class="fa-solid fa-truck-moving"></i></div>
+                        <p class="text-slate-500 text-sm font-bold uppercase tracking-wider">โยกย้ายแล้ว</p>
+                        <h3 class="text-3xl font-bold text-slate-800 mt-1" id="stat-moved">0</h3>
+                    </div>
+                </div>
+                 <!-- 4. Price -->
+                <div class="glass-card p-6 border-l-4 border-indigo-500 relative overflow-hidden group hover:bg-indigo-50/30">
+                    <div class="absolute right-0 top-0 p-4 opacity-10 transform translate-x-2 -translate-y-2"><i class="fa-solid fa-money-bill-wave text-6xl text-indigo-600"></i></div>
+                    <div class="relative z-10">
+                        <div class="w-10 h-10 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center mb-3"><i class="fa-solid fa-tags"></i></div>
+                        <p class="text-slate-500 text-sm font-bold uppercase tracking-wider">มูลค่ารวม</p>
+                        <h3 class="text-3xl font-bold text-slate-800 mt-1" id="stat-price">0</h3>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Zone Stats -->
+            <div>
+                <h3 class="font-bold text-xl text-slate-800 mb-4 flex items-center gap-2"><i class="fa-solid fa-map-location-dot text-blue-500"></i> สถิติแยกรายเขต (8 เขตแรก)</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="zone-stats-container"></div>
+            </div>
+            
+            <!-- Recent Table -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                    <h3 class="font-bold text-slate-700 flex items-center gap-2"><i class="fa-solid fa-clock-rotate-left text-slate-400"></i> รายการรถล่าสุด</h3>
+                    <button onclick="switchTab('vehicles')" class="text-xs font-bold text-blue-600 hover:text-blue-800 uppercase tracking-wide flex items-center gap-1 transition">ดูทั้งหมด <i class="fa-solid fa-arrow-right"></i></button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left custom-table">
+                        <thead><tr><th class="pl-6">วันที่ยึด</th><th>รุ่น</th><th>ทะเบียน</th><th>สาขา</th><th class="pr-6 text-right">ราคาตั้งขาย</th></tr></thead>
+                        <tbody id="dashboard-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+            <p class="footer-text">© 2026 ADMIN OK</p>
+        </div>
+
+        <!-- Vehicles List View -->
+        <div id="view-vehicles" class="flex-1 overflow-y-auto p-6 md:p-8 space-y-6 hidden fade-in">
+            <div class="flex flex-col xl:flex-row justify-between gap-4 items-start xl:items-center">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-database text-blue-600"></i> รายชื่อรถยึด</h2>
+                    <p class="text-slate-500 text-sm">จัดการข้อมูลรถทั้งหมดในระบบ</p>
+                </div>
+                <div class="flex flex-wrap gap-2 w-full xl:w-auto items-center">
+                    <button onclick="refreshCurrentTab()" class="bg-white border border-slate-200 text-slate-600 hover:text-blue-600 hover:border-blue-400 px-3 py-2 rounded-lg shadow-sm text-sm transition" title="รีเฟรช">
+                        <i class="fa-solid fa-rotate"></i>
+                    </button>
+                    
+                    <!-- New Multi-select Filters -->
+                    <div class="relative group" id="zone-filter-container">
+                        <button onclick="toggleFilter('zone')" class="bg-white border border-slate-200 text-slate-700 hover:border-blue-400 px-4 py-2 rounded-xl shadow-sm text-sm font-medium flex items-center gap-2">
+                            <i class="fa-solid fa-map"></i> กรองเขต <i class="fa-solid fa-chevron-down text-xs ml-1"></i>
+                        </button>
+                        <div id="filter-zone-menu" class="hidden absolute top-full left-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-xl z-20 p-2 dropdown-menu">
+                            <!-- Checkboxes injected by JS -->
+                        </div>
+                    </div>
+
+                    <div class="relative group" id="branch-filter-container">
+                        <button onclick="toggleFilter('branch')" class="bg-white border border-slate-200 text-slate-700 hover:border-blue-400 px-4 py-2 rounded-xl shadow-sm text-sm font-medium flex items-center gap-2">
+                            <i class="fa-solid fa-building"></i> กรองสาขา <i class="fa-solid fa-chevron-down text-xs ml-1"></i>
+                        </button>
+                        <div id="filter-branch-menu" class="hidden absolute top-full left-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-xl z-20 p-2 dropdown-menu">
+                            <!-- Checkboxes injected by JS -->
+                        </div>
+                    </div>
+
+                    <!-- NEW: Status Filter -->
+                    <div class="relative group" id="status-filter-container">
+                        <button onclick="toggleFilter('status')" class="bg-white border border-slate-200 text-slate-700 hover:border-blue-400 px-4 py-2 rounded-xl shadow-sm text-sm font-medium flex items-center gap-2">
+                            <i class="fa-solid fa-bars-progress"></i> กรองสถานะ <i class="fa-solid fa-chevron-down text-xs ml-1"></i>
+                        </button>
+                        <div id="filter-status-menu" class="hidden absolute top-full left-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-xl z-20 p-2 dropdown-menu">
+                            <!-- Checkboxes injected by JS -->
+                        </div>
+                    </div>
+                    
+                    <input type="text" id="search-vehicle" onkeyup="filterVehicles()" placeholder="ค้นหาทะเบียน/รุ่น..." class="border p-2 rounded-xl w-full md:w-56 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-100 transition">
+                    <button onclick="openVehicleModal()" class="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-medium shadow flex items-center gap-2 hover:bg-blue-700 transition"><i class="fa-solid fa-plus"></i> เพิ่มรถ</button>
+                </div>
+            </div>
+            
+            <!-- Filter Tags Display (Optional) -->
+            <div id="active-filters" class="flex flex-wrap gap-2 hidden"></div>
+
+            <div class="bg-white rounded-2xl shadow-sm overflow-hidden border border-slate-200">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left custom-table">
+                        <thead>
+                            <tr>
+                                <!-- REQ 1: Image -> Zone -->
+                                <th class="pl-6 w-24">เขต</th>
+                                <th>วันที่ยึด</th>
+                                <th>เลขที่สัญญา</th>
+                                <th>ชื่อลูกค้า</th>
+                                <th>ยี่ห้อ / รุ่น</th>
+                                <!-- REQ 3 & 4: Location replaces Plate, Swap Branch and Location -->
+                                <!-- New Order: ... | Model | Branch | Location | ... -->
+                                <th>สาขา</th>
+                                <th>สถานที่จอด</th> 
+                                <th class="text-center">สถานะ</th>
+                                <th class="text-right">ราคาขาย</th>
+                                <th class="pr-6 text-center w-32">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="vehicle-table-body" class="divide-y divide-slate-100"></tbody>
+                    </table>
+                </div>
+                <div id="empty-state" class="hidden p-12 text-center text-slate-400">
+                    <i class="fa-regular fa-folder-open text-4xl mb-3 text-slate-300"></i>
+                    <p>ไม่พบข้อมูล</p>
+                </div>
+            </div>
+            <p class="footer-text">© 2026 ADMIN OK</p>
+        </div>
+
+        <!-- Detail View -->
+        <div id="view-vehicle-detail" class="hidden absolute inset-0 z-40 bg-[#f8fafc] overflow-y-auto fade-in">
+            <div class="sticky top-0 bg-white/90 backdrop-blur-md border-b border-slate-200 px-6 py-4 flex justify-between items-center shadow-sm z-10">
+                <div class="flex items-center gap-4"><button onclick="closeDetailView()" class="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition shadow-sm"><i class="fa-solid fa-arrow-left"></i></button><div><h2 class="text-xl font-bold text-slate-800" id="detail-plate">-</h2><span id="detail-status-badge" class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider">-</span></div></div>
+                <button id="btn-edit-detail" class="bg-white border border-slate-300 text-slate-700 hover:border-blue-500 hover:text-blue-600 px-4 py-2 rounded-lg font-bold shadow-sm transition flex items-center gap-2 text-sm"><i class="fa-regular fa-pen-to-square"></i> <span class="hidden sm:inline">แก้ไขข้อมูล</span></button>
+            </div>
+            <div class="p-6 md:p-10 max-w-6xl mx-auto space-y-8">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div id="detail-img-1" class="image-preview-detail shadow-sm cursor-zoom-in"></div>
+                    <div id="detail-img-2" class="image-preview-detail shadow-sm cursor-zoom-in"></div>
+                    <div id="detail-img-3" class="image-preview-detail shadow-sm cursor-zoom-in"></div>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div class="lg:col-span-2 space-y-6">
+                        <div class="glass-card p-6 border-l-4 border-blue-500">
+                            <!-- Add Icon here -->
+                            <h3 class="font-bold mb-4 border-b pb-2 text-blue-800 flex items-center gap-2">
+                                <img src="https://img.icons8.com/3d-fluency/96/agreement.png" class="w-8 h-8 drop-shadow-sm">
+                                สัญญา/ลูกค้า
+                            </h3>
+                            <div class="grid grid-cols-2 gap-4 text-sm">
+                                <div><small class="text-slate-400">สัญญา</small><p id="detail-contract">-</p></div>
+                                <div><small class="text-slate-400">ลูกค้า</small><p id="detail-customer">-</p></div>
+                                <div><small class="text-slate-400">วันที่ยึด</small><p id="detail-seize-date">-</p></div>
+                                <div><small class="text-slate-400">วันบันทึกข้อมูล (Timestamp)</small><p id="detail-timestamp" class="text-blue-600 font-medium">-</p></div>
+                            </div>
+                        </div>
+                        <div class="glass-card p-6 border-l-4 border-orange-500">
+                            <!-- Add Icon here -->
+                            <h3 class="font-bold mb-4 border-b pb-2 text-orange-600 flex items-center gap-2">
+                                <img src="https://img.icons8.com/3d-fluency/96/map-marker.png" class="w-8 h-8 drop-shadow-sm">
+                                ที่ตั้งและการโยกย้าย
+                            </h3>
+                            <div class="grid grid-cols-2 gap-4 text-sm">
+                                <div><small class="text-slate-400">รหัสสาขา</small><p id="detail-branch-code">-</p></div>
+                                <div><small class="text-slate-400">ชื่อสาขา</small><p id="detail-branch">-</p></div>
+                                <div><small class="text-slate-400">เขตพื้นที่</small><p id="detail-area">-</p></div>
+                                <div><small class="text-slate-400">จุดจอด</small><p id="detail-location">-</p></div>
+                                <div class="col-span-2 border-t pt-2 mt-2">
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div><small class="text-slate-400">วันที่โยก</small><p id="detail-move-date">-</p></div>
+                                        <div><small class="text-slate-400">โยกไปที่</small><p id="detail-move-to">-</p></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="glass-card p-6 border-t-4 border-emerald-500 sticky top-24 shadow-lg">
+                            <!-- Add Icon here -->
+                            <h3 class="font-bold mb-4 flex items-center gap-2">
+                                <img src="https://img.icons8.com/3d-fluency/96/money-bag.png" class="w-8 h-8 drop-shadow-sm">
+                                การเงิน
+                            </h3>
+                            <div class="text-3xl font-bold text-emerald-600" id="detail-price">0</div><div class="mt-4 pt-4 border-t flex justify-between"><span>ยอดจัด</span><span id="detail-finance">0</span></div><div class="flex justify-between mt-2"><span>AR คงเหลือ</span><span id="detail-ar">0</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <p class="footer-text">© 2026 ADMIN OK</p>
+        </div>
+
+        <!-- Lightbox Modal -->
+        <div id="lightbox-modal" class="hidden fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4" onclick="closeLightbox()">
+            <button class="absolute top-4 right-4 text-white text-3xl hover:text-gray-300">&times;</button>
+            <img id="lightbox-img" src="" class="max-h-[90vh] max-w-[90vw] rounded shadow-lg object-contain">
+        </div>
+
+        <!-- Users & Logs -->
+        <div id="view-users" class="flex-1 overflow-y-auto p-6 md:p-8 space-y-6 hidden fade-in">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-slate-800">จัดการผู้ใช้งาน</h2>
+                <div class="flex gap-2">
+                    <button onclick="refreshCurrentTab()" class="bg-white border border-slate-200 text-slate-600 hover:text-blue-600 px-3 py-2 rounded-lg shadow-sm transition" title="รีเฟรช"><i class="fa-solid fa-rotate"></i></button>
+                    <button onclick="openUserModal()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition shadow-lg"><i class="fa-solid fa-user-plus"></i> เพิ่มผู้ใช้</button>
+                </div>
+            </div>
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <table class="w-full text-sm text-left custom-table">
+                    <thead><tr><th class="pl-6">Username</th><th>ชื่อ-นามสกุล</th><th>Role</th><th>สถานะ</th><th class="text-right pr-6">Action</th></tr></thead>
+                    <tbody id="users-table-body"></tbody>
+                </table>
+            </div>
+            <p class="footer-text">© 2026 ADMIN OK</p>
+        </div>
+        <div id="view-logs" class="flex-1 overflow-y-auto p-6 md:p-8 space-y-6 hidden fade-in">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">Logs</h2>
+                <button onclick="refreshCurrentTab()" class="bg-white border border-slate-200 text-slate-600 hover:text-blue-600 px-3 py-2 rounded-lg shadow-sm transition" title="รีเฟรช"><i class="fa-solid fa-rotate"></i></button>
+            </div>
+            <div class="bg-white rounded-2xl shadow-sm overflow-hidden"><table class="w-full text-sm text-left custom-table"><thead><tr><th class="pl-6">Time</th><th>User</th><th>Action</th><th class="pr-6">Detail</th></tr></thead><tbody id="logs-table-body"></tbody></table></div>
+            <p class="footer-text">© 2026 ADMIN OK</p>
+        </div>
+    </main>
+
+    <!-- Vehicle Modal -->
+    <div id="vehicle-modal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-black/50 flex items-center justify-center p-0 md:p-4 font-sarabun backdrop-blur-sm">
+        <div class="bg-slate-50 w-full max-w-7xl h-full md:h-auto md:max-h-[95vh] overflow-y-auto md:rounded-xl shadow-2xl relative animate-[fadeIn_0.2s_ease-out] border border-white/20">
+            <button onclick="closeModal('vehicle-modal')" class="absolute top-4 right-4 w-8 h-8 bg-white text-slate-400 hover:text-red-500 rounded-full flex items-center justify-center shadow-sm z-20 transition"><i class="fa-solid fa-xmark"></i></button>
+            <div class="p-6 md:p-8">
+                <div class="flex items-center gap-4 mb-6">
+                    <!-- Skeuomorphic 3D Icon for Main Title -->
+                    <div class="w-14 h-14 flex items-center justify-center bg-blue-100 rounded-2xl shadow-sm border border-blue-200">
+                        <i class="fa-solid fa-warehouse text-3xl text-blue-600 drop-shadow-sm"></i>
+                    </div>
+                    <div><h1 class="text-2xl font-bold text-slate-800" id="form-title">บันทึกข้อมูลรถยึด</h1><p class="text-sm text-slate-500">ระบบฐานข้อมูลกลาง</p></div>
+                </div>
+                <form id="vehicleForm" onsubmit="saveVehicleData(event)">
+                    <input type="hidden" name="rec_id">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Col 1 -->
+                        <div class="space-y-6">
+                            <div class="form-card">
+                                <!-- Skeuomorphic Icon 1 -->
+                                <div class="card-header font-bold text-blue-600 flex items-center gap-2">
+                                    <img src="https://img.icons8.com/3d-fluency/96/company.png" class="w-8 h-8 drop-shadow-sm"> 
+                                    1. ข้อมูลสาขาและเขตพื้นที่
+                                </div>
+                                <div class="card-body">
+                                    <div class="grid grid-cols-2 gap-4 mb-4">
+                                        <div><label class="form-label">วันที่ทำรายการ</label><input type="date" name="seize_date" required class="form-control"></div>
+                                        <div>
+                                            <label class="form-label">เขตพื้นที่</label>
+                                            <select name="area_code" required class="form-control">
+                                                <option value="K012">K012</option>
+                                                <option value="K122">K122</option>
+                                                <option value="K189">K189</option>
+                                                <option value="K195">K195</option>
+                                                <option value="K196">K196</option>
+                                                <option value="K247">K247</option>
+                                                <option value="K273">K273</option>
+                                                <option value="K358">K358</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div><label class="form-label">รหัสสาขา</label><input type="text" name="branch_code" required class="form-control uppercase text-center"></div>
+                                        <div><label class="form-label">ชื่อสาขา</label><input type="text" name="branch_name" class="form-control"></div>
+                                        <div class="col-span-2"><label class="form-label">สถานที่จอดปัจจุบัน</label><input type="text" name="location" class="form-control"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-card">
+                                <!-- Skeuomorphic Icon 2 -->
+                                <div class="card-header font-bold text-indigo-600 flex items-center gap-2">
+                                    <img src="https://img.icons8.com/3d-fluency/96/agreement.png" class="w-8 h-8 drop-shadow-sm">
+                                    2. ข้อมูลสัญญาและลูกค้า
+                                </div>
+                                <div class="card-body"><div class="grid grid-cols-2 gap-4 mb-4"><div><label class="form-label">เลขที่สัญญา</label><input type="text" name="contract_no" required class="form-control font-bold text-blue-900 bg-blue-50"></div>
+                            
+                            <div><label class="form-label">สถานะโยกรถ</label><select name="status" id="transferStatus" class="form-control" onchange="toggleTransferDate()"><option value="รอโยกย้าย">รอโยกย้าย</option><option value="โยกย้ายแล้ว">โยกย้ายแล้ว</option><option value="sold">ขายแล้ว</option></select></div>
+                            
+                            </div><div class="mb-4"><label class="form-label">ชื่อลูกค้า</label><input type="text" name="customer_name" class="form-control"></div><div id="transferDateGroup" class="hidden grid grid-cols-2 gap-4 bg-orange-50 p-3 rounded-lg border border-orange-100"><div class="col-span-2 text-xs font-bold text-orange-600 uppercase mb-1">ข้อมูลการโยกย้าย</div><div><label class="form-label text-xs">วันที่โยก</label><input type="date" name="move_date" id="moveDateInput" class="form-control bg-white"></div><div><label class="form-label text-xs">โยกไปที่</label><input type="text" name="move_to" id="moveToInput" class="form-control bg-white"></div></div><div id="transferToGroup" class="hidden"></div></div></div>
+                            <div class="form-card">
+                                <!-- Skeuomorphic Icon 3 -->
+                                <div class="card-header font-bold text-orange-600 flex items-center gap-2">
+                                    <i class="fa-solid fa-car-side text-3xl drop-shadow-sm"></i>
+                                    3. รายละเอียดรถยนต์
+                                </div>
+                                <div class="card-body">
+                                <div class="mb-4 flex gap-4">
+                                    <div class="w-1/2"><label class="form-label">ยี่ห้อ</label><input type="text" name="brand" required class="form-control" placeholder="เช่น Honda"></div>
+                                    <div class="w-1/2"><label class="form-label">รุ่น</label><input type="text" name="model" required class="form-control" placeholder="เช่น Civic"></div>
+                                </div>
+                                <div class="flex gap-4">
+                                    <div class="w-1/2"><label class="form-label">จังหวัด</label><input type="text" id="plateProvince" list="provinceList" class="form-control" placeholder="เลือกจังหวัด"></div>
+                                    <div class="w-1/2"><label class="form-label">เลขทะเบียน</label><input type="text" id="plateNumber" class="form-control text-center font-bold" placeholder="เช่น 1กท 9999"></div>
+                                    <datalist id="provinceList"></datalist>
+                                </div>
+                            </div></div>
+                        </div>
+                        <!-- Col 2 -->
+                        <div class="space-y-6">
+                            <div class="form-card">
+                                <!-- Skeuomorphic Icon 4 -->
+                                <div class="card-header font-bold text-emerald-600 flex items-center gap-2">
+                                    <img src="https://img.icons8.com/3d-fluency/96/money-bag.png" class="w-8 h-8 drop-shadow-sm">
+                                    4. ข้อมูลสินเชื่อ
+                                </div>
+                                <div class="card-body"><div class="space-y-4">
+                                <div><label class="form-label">ราคาขาย</label><input type="text" name="price" onkeyup="formatNumber(this)" class="form-control text-right text-lg font-bold text-emerald-600"></div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div><label class="form-label text-xs">ยอดจัด</label><input type="text" name="finance_amount" onkeyup="formatNumber(this)" class="form-control text-right"></div>
+                                    <div><label class="form-label text-xs">AR คงเหลือ</label><input type="text" name="ar_balance" onkeyup="formatNumber(this)" class="form-control text-right"></div>
+                                </div>
+                            </div></div></div>
+                            <div class="form-card flex-1">
+                                <!-- Skeuomorphic Icon 5 -->
+                                <div class="card-header font-bold text-slate-600 flex items-center gap-2">
+                                    <img src="https://img.icons8.com/3d-fluency/96/camera.png" class="w-8 h-8 drop-shadow-sm">
+                                    5. รูปภาพหลักฐาน
+                                </div>
+                                <div class="card-body space-y-4"><div><label class="form-label text-center text-xs mb-1">หน้าขวา</label><div class="upload-zone group" id="zone1" onclick="triggerFile('file1')"><img id="preview1" class="absolute w-full h-full object-contain hidden z-10 bg-white p-1 rounded-lg"><div id="icon1" class="transition transform group-hover:scale-110"><i class="fa-solid fa-cloud-arrow-up text-3xl text-slate-300"></i></div><input type="file" id="file1" accept="image/*" class="hidden" onchange="previewImage(this, '1')"><div id="remove1" class="remove-btn hidden" onclick="removeImage(event, '1')"><i class="fa-solid fa-xmark"></i></div></div><input type="hidden" name="img_front_right_old"></div><div class="grid grid-cols-2 gap-4"><div><label class="form-label text-center text-xs mb-1">หลังขวา</label><div class="upload-zone h-32 group" id="zone2" onclick="triggerFile('file2')"><img id="preview2" class="absolute w-full h-full object-contain hidden z-10 bg-white p-1 rounded-lg"><div id="icon2" class="transition transform group-hover:scale-110"><i class="fa-solid fa-cloud-arrow-up text-2xl text-slate-300"></i></div><input type="file" id="file2" accept="image/*" class="hidden" onchange="previewImage(this, '2')"><div id="remove2" class="remove-btn hidden" onclick="removeImage(event, '2')"><i class="fa-solid fa-xmark"></i></div></div><input type="hidden" name="img_back_right_old"></div><div><label class="form-label text-center text-xs mb-1">ด้านข้าง</label><div class="upload-zone h-32 group" id="zone3" onclick="triggerFile('file3')"><img id="preview3" class="absolute w-full h-full object-contain hidden z-10 bg-white p-1 rounded-lg"><div id="icon3" class="transition transform group-hover:scale-110"><i class="fa-solid fa-cloud-arrow-up text-2xl text-slate-300"></i></div><input type="file" id="file3" accept="image/*" class="hidden" onchange="previewImage(this, '3')"><div id="remove3" class="remove-btn hidden" onclick="removeImage(event, '3')"><i class="fa-solid fa-xmark"></i></div></div><input type="hidden" name="img_side_old"></div></div></div></div>
+                        </div>
+                    </div>
+                    <div class="mt-6 flex justify-end gap-3 pt-4 border-t border-slate-200"><button type="button" onclick="closeModal('vehicle-modal')" class="px-6 py-3 rounded-lg bg-slate-200 font-bold">ยกเลิก</button><button type="submit" id="submitBtn" class="px-8 py-3 rounded-lg bg-blue-700 text-white font-bold shadow-lg">บันทึกข้อมูล</button></div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Modal -->
+    <div id="user-modal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
+            <!-- Skeuomorphic Icon for User Modal -->
+            <h3 class="font-bold text-xl mb-6 flex items-center gap-3">
+                <img src="https://img.icons8.com/3d-fluency/96/conference-call.png" class="w-10 h-10 drop-shadow-md">
+                จัดการผู้ใช้งาน
+            </h3>
+            <form id="userForm" onsubmit="saveUserData(event)" class="space-y-4">
+                <input type="hidden" name="u_old_username">
+                <input type="text" name="u_username" class="form-control" placeholder="Username" required>
+                <input type="password" name="u_password" class="form-control" placeholder="Password (ปล่อยว่างถ้าไม่เปลี่ยน)">
+                <input type="text" name="u_name" class="form-control" placeholder="Name" required>
+                <select name="u_role" class="form-control"><option value="Admin">Admin</option><option value="Regional Manager">Regional Manager</option><option value="District Manager">District Manager</option><option value="Branch User">Branch User</option></select>
+                <div class="pt-4 flex justify-end gap-3"><button type="button" onclick="closeModal('user-modal')" class="px-4 py-2 bg-slate-200 rounded">ยกเลิก</button><button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded">บันทึก</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- NEW: Change Password Modal (Updated) -->
+    <div id="password-modal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 relative overflow-hidden">
+            <!-- Loading Overlay for Modal -->
+             <div id="pwd-loader" class="absolute inset-0 bg-white/80 z-20 hidden flex flex-col items-center justify-center">
+                <i class="fa-solid fa-circle-notch fa-spin text-4xl text-blue-600"></i>
+                <p class="text-sm text-blue-600 font-bold mt-2">กำลังบันทึก...</p>
+            </div>
+
+            <h3 class="font-bold text-xl mb-4 text-slate-800 flex items-center gap-2">
+                <i class="fa-solid fa-key text-blue-600"></i> เปลี่ยนรหัสผ่าน
+            </h3>
+            <form id="passwordForm" onsubmit="handleChangePassword(event)" class="space-y-4">
+                <div>
+                    <label class="text-xs font-bold text-slate-500">รหัสผ่านเดิม</label>
+                    <div class="relative">
+                        <input type="password" name="old_password" id="old_password" class="form-control pr-10" required>
+                        <button type="button" onclick="togglePass('old_password', this)" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600 focus:outline-none">
+                            <i class="fa-solid fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-slate-500">รหัสผ่านใหม่</label>
+                    <div class="relative">
+                        <input type="password" name="new_password" id="new_password" class="form-control pr-10" required minlength="4" onkeyup="checkPwdMatch()">
+                        <button type="button" onclick="togglePass('new_password', this)" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600 focus:outline-none">
+                            <i class="fa-solid fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-slate-500 flex justify-between">
+                        ยืนยันรหัสผ่านใหม่
+                        <span id="match-msg" class="text-[10px] hidden"><i class="fa-solid fa-circle-check"></i> ตรงกัน</span>
+                    </label>
+                    <div class="relative">
+                        <input type="password" name="confirm_password" id="confirm_password" class="form-control pr-10" required minlength="4" onkeyup="checkPwdMatch()">
+                        <button type="button" onclick="togglePass('confirm_password', this)" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600 focus:outline-none">
+                            <i class="fa-solid fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="pt-4 flex justify-end gap-2">
+                    <button type="button" onclick="closeModal('password-modal')" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition">ยกเลิก</button>
+                    <button type="submit" id="btn-save-pwd" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">ยืนยัน</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbyeKjDKKw97qPblLQCFD5JyZywE806kr6jMBWUllYaef7b0S4wKDAWlad5p1n956KnptA/exec"; 
+        
+        let currentUser = null;
+        let vehiclesData = [];
+        let usersData = [];
+        let currentTab = 'dashboard';
+        let logoutTimer; // Timer for auto logout
+
+        // Filter state
+        let activeFilters = {
+            zones: new Set(),
+            branches: new Set(),
+            statuses: new Set()
+        };
+
+        const provinces = ["กรุงเทพมหานคร","กระบี่","กาญจนบุรี","กาฬสินธุ์","กำแพงเพชร","ขอนแก่น","จันทบุรี","ฉะเชิงเทรา","ชลบุรี","ชัยนาท","ชัยภูมิ","ชุมพร","เชียงราย","เชียงใหม่","ตรัง","ตราด","ตาก","นครนายก","นครปฐม","นครพนม","นครราชสีมา","นครศรีธรรมราช","นครสวรรค์","นนทบุรี","นราธิวาส","น่าน","บึงกาฬ","บุรีรัมย์","ปทุมธานี","ประจวบคีรีขันธ์","ปราจีนบุรี","ปัตตานี","พระนครศรีอยุธยา","พะเยา","พังงา","พัทลุง","พิจิตร","พิษณุโลก","เพชรบุรี","เพชรบูรณ์","แพร่","ภูเก็ต","มหาสารคาม","มุกดาหาร","แม่ฮ่องสอน","ยโสธร","ยะลา","ร้อยเอ็ด","ระนอง","ระยอง","ราชบุรี","ลพบุรี","ลำปาง","ลำพูน","เลย","ศรีสะเกษ","สกลนคร","สงขลา","สตูล","สมุทรปราการ","สมุทรสงคราม","สมุทรสาคร","สระแก้ว","สระบุรี","สิงห์บุรี","สุโขทัย","สุพรรณบุรี","สุราษฎร์ธานี","สุรินทร์","หนองคาย","หนองบัวลำภู","อ่างทอง","อำนาจเจริญ","อุดรธานี","อุตรดิตถ์","อุทัยธานี","อุบลราชธานี"];
+        
+        // Short name map (example)
+        const provinceAbbr = {
+            "กรุงเทพมหานคร": "กทม.", "กระบี่": "กบ", "กาญจนบุรี": "กจ", "กาฬสินธุ์": "กส", "กำแพงเพชร": "กพ", "ขอนแก่น": "ขก",
+            "จันทบุรี": "จบ", "ฉะเชิงเทรา": "ฉช", "ชลบุรี": "ชบ", "ชัยนาท": "ชน", "ชัยภูมิ": "ชย", "ชุมพร": "ชพ", "เชียงราย": "ชร",
+            "เชียงใหม่": "ชม", "ตรัง": "ตง", "ตราด": "ตร", "ตาก": "ตก", "นครนายก": "นย", "นครปฐม": "นฐ", "นครพนม": "นพ",
+            "นครราชสีมา": "นม", "นครศรีธรรมราช": "นศ", "นครสวรรค์": "นว", "นนทบุรี": "นบ", "นราธิวาส": "นธ", "น่าน": "นน",
+            "บึงกาฬ": "บก", "บุรีรัมย์": "บร", "ปทุมธานี": "ปท", "ประจวบคีรีขันธ์": "ปข", "ปราจีนบุรี": "ปจ", "ปัตตานี": "ปน",
+            "พระนครศรีอยุธยา": "อย", "พะเยา": "พย", "พังงา": "พง", "พัทลุง": "พท", "พิจิตร": "พจ", "พิษณุโลก": "พล", "เพชรบุรี": "พบ",
+            "เพชรบูรณ์": "พช", "แพร่": "พร", "ภูเก็ต": "ภก", "มหาสารคาม": "มค", "มุกดาหาร": "มห", "แม่ฮ่องสอน": "มส", "ยโสธร": "ยส",
+            "ยะลา": "ยล", "ร้อยเอ็ด": "รอ", "ระนอง": "รน", "ระยอง": "รย", "ราชบุรี": "รบ", "ลพบุรี": "ลบ", "ลำปาง": "ลป",
+            "ลำพูน": "ลพ", "เลย": "ลย", "ศรีสะเกษ": "ศก", "สกลนคร": "สน", "สงขลา": "สข", "สตูล": "สต", "สมุทรปราการ": "สป",
+            "สมุทรสงคราม": "สส", "สมุทรสาคร": "สค", "สระแก้ว": "สก", "สระบุรี": "สบ", "สิงห์บุรี": "สห", "สุโขทัย": "สท",
+            "สุพรรณบุรี": "สพ", "สุราษฎร์ธานี": "สฎ", "สุรินทร์": "สร", "หนองคาย": "นค", "หนองบัวลำภู": "นภ", "อ่างทอง": "อท",
+            "อำนาจเจริญ": "อจ", "อุดรธานี": "อด", "อุตรดิตถ์": "อต", "อุทัยธานี": "อน", "อุบลราชธานี": "อบ"
+        };
+
+        const dl = document.getElementById('provinceList');
+        provinces.forEach(p => { const o = document.createElement('option'); o.value = p; dl.appendChild(o); });
+
+        const el = (id) => document.getElementById(id);
+        const show = (id) => el(id).classList.remove('hidden');
+        const hide = (id) => el(id).classList.add('hidden');
+        const showLoader = () => show('loader');
+        const hideLoader = () => hide('loader');
+        
+        // --- Number Formatting ---
+        function formatNumber(input) {
+            let value = input.value.replace(/,/g, '');
+            if (!isNaN(value) && value !== "") {
+                input.value = Number(value).toLocaleString();
+            } else {
+                input.value = value;
+            }
+        }
+
+        // --- Init System (Persistence) ---
+        window.onload = function() {
+            // Close dropdowns when clicking outside
+            document.addEventListener('click', function(event) {
+                if (!event.target.closest('#zone-filter-container')) hide('filter-zone-menu');
+                if (!event.target.closest('#branch-filter-container')) hide('filter-branch-menu');
+                if (!event.target.closest('#status-filter-container')) hide('filter-status-menu');
+            });
+
+            const savedUser = localStorage.getItem('repo_user');
+            if (savedUser) {
+                try {
+                    currentUser = JSON.parse(savedUser);
+                    // setup UI directly
+                    el('display-name').textContent = currentUser.name; 
+                    el('display-role').textContent = currentUser.role;
+                    hide('login-view'); 
+                    document.getElementById('sidebar').classList.remove('hidden');
+                    if(currentUser.role.toLowerCase() === 'admin') show('admin-menu');
+                    loadDashboardData(); 
+                    switchTab('dashboard');
+                    startIdleTimer();
+                } catch(e) {
+                    localStorage.removeItem('repo_user');
+                }
+            }
+        };
+
+        // --- Filter Logic ---
+        function toggleFilter(type) {
+            const menu = el(`filter-${type}-menu`);
+            if (menu.classList.contains('hidden')) {
+                hide('filter-zone-menu'); 
+                hide('filter-branch-menu');
+                hide('filter-status-menu');
+                show(`filter-${type}-menu`);
+            } else {
+                hide(`filter-${type}-menu`);
+            }
+        }
+
+        function populateFilters() {
+            // Get Unique Zones
+            const zones = [...new Set(vehiclesData.map(v => v.area_code || 'N/A'))].sort();
+            const zoneMenu = el('filter-zone-menu');
+            
+            // Generate Zone Checkboxes with Select All
+            let zoneHTML = `
+                <label class="flex items-center gap-2 px-2 py-2 cursor-pointer rounded checkbox-item text-sm font-bold border-b border-slate-100 mb-1 text-blue-700 bg-slate-50 hover:bg-slate-100 sticky top-0 z-10">
+                    <input type="checkbox" id="cb-all-zone" onchange="toggleAllFilters('zone', this.checked)" class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                    <span>เลือกทั้งหมด</span>
+                </label>
+            `;
+            zoneHTML += zones.map(z => `
+                <label class="flex items-center gap-2 px-2 py-1.5 cursor-pointer rounded checkbox-item text-sm">
+                    <input type="checkbox" value="${z}" onchange="checkSelectAllState('zone'); updateFilters('zone')" ${activeFilters.zones.has(z) ? 'checked' : ''} class="filter-cb-zone w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                    <span>${z}</span>
+                </label>
+            `).join('');
+            zoneMenu.innerHTML = zoneHTML;
+            checkSelectAllState('zone');
+
+            // Get Unique Branches
+            const branches = [...new Set(vehiclesData.map(v => v.branch_name || v.branch_code || 'N/A'))].sort();
+            const branchMenu = el('filter-branch-menu');
+            
+            // Generate Branch Checkboxes with Select All
+            let branchHTML = `
+                <label class="flex items-center gap-2 px-2 py-2 cursor-pointer rounded checkbox-item text-sm font-bold border-b border-slate-100 mb-1 text-blue-700 bg-slate-50 hover:bg-slate-100 sticky top-0 z-10">
+                    <input type="checkbox" id="cb-all-branch" onchange="toggleAllFilters('branch', this.checked)" class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                    <span>เลือกทั้งหมด</span>
+                </label>
+            `;
+            branchHTML += branches.map(b => `
+                <label class="flex items-center gap-2 px-2 py-1.5 cursor-pointer rounded checkbox-item text-sm">
+                    <input type="checkbox" value="${b}" onchange="checkSelectAllState('branch'); updateFilters('branch')" ${activeFilters.branches.has(b) ? 'checked' : ''} class="filter-cb-branch w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                    <span class="truncate">${b}</span>
+                </label>
+            `).join('');
+            branchMenu.innerHTML = branchHTML;
+            checkSelectAllState('branch');
+
+            // Get Unique Statuses
+            const statuses = [...new Set(vehiclesData.map(v => v.status || 'รอโยกย้าย'))].sort();
+            const statusMenu = el('filter-status-menu');
+            
+            let statusHTML = `
+                <label class="flex items-center gap-2 px-2 py-2 cursor-pointer rounded checkbox-item text-sm font-bold border-b border-slate-100 mb-1 text-blue-700 bg-slate-50 hover:bg-slate-100 sticky top-0 z-10">
+                    <input type="checkbox" id="cb-all-status" onchange="toggleAllFilters('status', this.checked)" class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                    <span>เลือกทั้งหมด</span>
+                </label>
+            `;
+            statusHTML += statuses.map(s => `
+                <label class="flex items-center gap-2 px-2 py-1.5 cursor-pointer rounded checkbox-item text-sm">
+                    <input type="checkbox" value="${s}" onchange="checkSelectAllState('status'); updateFilters('status')" ${activeFilters.statuses.has(s) ? 'checked' : ''} class="filter-cb-status w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                    <span class="truncate">${s}</span>
+                </label>
+            `).join('');
+            statusMenu.innerHTML = statusHTML;
+            checkSelectAllState('status');
+        }
+
+        function toggleAllFilters(type, isChecked) {
+            const checkboxes = document.querySelectorAll(`.filter-cb-${type}`);
+            checkboxes.forEach(cb => cb.checked = isChecked);
+            updateFilters(type);
+        }
+
+        function checkSelectAllState(type) {
+            const allCb = el(`cb-all-${type}`);
+            if(!allCb) return;
+            const checkboxes = document.querySelectorAll(`.filter-cb-${type}`);
+            const allChecked = Array.from(checkboxes).length > 0 && Array.from(checkboxes).every(cb => cb.checked);
+            const someChecked = Array.from(checkboxes).some(cb => cb.checked);
+            
+            allCb.checked = allChecked;
+            allCb.indeterminate = someChecked && !allChecked;
+        }
+
+        function updateFilters(type) {
+            const checkboxes = document.querySelectorAll(`.filter-cb-${type}`);
+            let targetSet;
+            if(type === 'zone') targetSet = activeFilters.zones;
+            else if(type === 'branch') targetSet = activeFilters.branches;
+            else if(type === 'status') targetSet = activeFilters.statuses;
+
+            targetSet.clear();
+            checkboxes.forEach(cb => {
+                if(cb.checked) targetSet.add(cb.value);
+            });
+            filterVehicles();
+        }
+
+        // --- Idle Timer Logic ---
+        function startIdleTimer() {
+            // Events that reset the timer
+            const events = ['mousemove', 'keypress', 'click', 'scroll', 'touchstart'];
+            events.forEach(evt => document.addEventListener(evt, resetTimer));
+            resetTimer(); // Initial start
+        }
+
+        function resetTimer() {
+            clearTimeout(logoutTimer);
+            if(currentUser) {
+                // Set timeout for 10 minutes (600,000 ms)
+                logoutTimer = setTimeout(() => {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'หมดเวลาใช้งาน',
+                        text: 'ระบบออกจากระบบอัตโนมัติเนื่องจากไม่มีการใช้งานเกิน 10 นาที',
+                        timer: 3000,
+                        showConfirmButton: false
+                    }).then(() => {
+                        logout();
+                    });
+                }, 600000); 
+            }
+        }
+
+        // --- Refresh Logic ---
+        function refreshCurrentTab() {
+            // Trigger switch tab to reload data of current view
+            if(currentTab) {
+                switchTab(currentTab);
+                const btn = document.querySelector(`#view-${currentTab} button[title='รีเฟรช'] i`);
+                if(btn) {
+                    btn.classList.add('fa-spin');
+                    setTimeout(() => btn.classList.remove('fa-spin'), 1000);
+                }
+            }
+        }
+
+        if (!API_URL && typeof google === 'undefined') {
+            console.warn("Using Mock Data"); el('login-alert').classList.remove('hidden');
+            const mockUsers = [{username:'admin', role:'Admin', name:'Super Admin'}];
+            const mockVehicles = [{id:'1', plate:'1กท 9999 กทม.', location:'ลานจอด A1', price:25000, status:'รอโยกย้าย', seize_date:'2025-01-01', area_code:'K012', branch_name:'สาขาบางเขน', brand_model:'Honda Civic'}];
+            window.fetch = async (url, options) => {
+                await new Promise(r => setTimeout(r, 600));
+                let body = {}; if(options && options.body) body = JSON.parse(options.body);
+                if(body.action === 'login') return { ok:true, json: async() => ({success:true, ...mockUsers[0]}) };
+                if(body.action === 'getVehicles') return { ok:true, json: async() => (mockVehicles) };
+                if(body.action === 'getUsers') return { ok:true, json: async() => (mockUsers) };
+                if(body.action === 'changePassword') {
+                    if(body.oldPassword === 'password' || body.oldPassword === '1234') return { ok:true, json: async() => ({success:true}) };
+                    return { ok:true, json: async() => ({success:false, message:'รหัสผ่านเดิมไม่ถูกต้อง (Mock)'}) };
+                }
+                if(body.action === 'getLogs') return { ok:true, json: async() => ([{timestamp:new Date(), username:'admin', action:'LOGIN', details:'Test'}]) };
+                return { ok:true, json: async() => ({success:true}) };
+            };
+        }
+
+        async function apiCall(action, data = {}) {
+            if(!API_URL && !window.fetch.toString().includes('setTimeout')) { Swal.fire('Error', 'กรุณาระบุ API_URL', 'error'); return null; }
+            try { const res = await fetch(API_URL, { method: 'POST', cache: 'no-store', body: JSON.stringify({ action, ...data }) }); return await res.json(); } 
+            catch (e) { console.error(e); Swal.fire('Connection Error', 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้', 'error'); return null; }
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault(); 
+            
+            // Button Animation Logic (New)
+            const btn = e.target.querySelector('button[type="submit"]');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> <span>กำลังเข้าสู่ระบบ...</span>';
+            btn.disabled = true;
+
+            // Show Loader Animation immediately (Global loader)
+            showLoader();
+            
+            const res = await apiCall('login', { username: e.target.username.value, password: e.target.password.value });
+            
+            hideLoader();
+            
+            // Reset Button
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            
+            if(res && res.success){
+                currentUser = res; 
+                // Save to local storage
+                localStorage.setItem('repo_user', JSON.stringify(res));
+                
+                el('display-name').textContent = res.name; el('display-role').textContent = res.role;
+                hide('login-view'); document.getElementById('sidebar').classList.remove('hidden');
+                if(res.role.toLowerCase() === 'admin') show('admin-menu');
+                loadDashboardData(); 
+                switchTab('dashboard');
+                startIdleTimer();
+            } else if(res) Swal.fire('Error', res.message, 'error');
+        }
+        
+        function logout() { 
+            localStorage.removeItem('repo_user');
+            location.reload(); 
+        }
+
+        function switchTab(t) {
+            currentTab = t;
+            showLoader();
+            setTimeout(() => {
+                hide('view-vehicle-detail'); ['dashboard','vehicles','users','logs'].forEach(v => hide('view-'+v));
+                document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active', 'bg-white/10'));
+                show('view-'+t); if(el('nav-'+t)) el('nav-'+t).classList.add('active');
+                if(t==='dashboard') loadDashboardData(); if(t==='vehicles') loadVehicles(); if(t==='users') loadUsers(); if(t==='logs') loadLogs();
+                if(window.innerWidth < 768) document.getElementById('sidebar').classList.add('hidden');
+                hideLoader();
+            }, 300);
+        }
+
+        async function loadDashboardData() {
+            const data = await apiCall('getVehicles', { userStr: JSON.stringify(currentUser) }); 
+            if(data) { vehiclesData = data; renderDashboard(data); populateFilters(); }
+        }
+
+        function renderDashboard(d) {
+            el('stat-total').textContent = d.length; el('stat-price').textContent = d.reduce((s,v)=>s+(Number(v.price)||0),0).toLocaleString();
+            
+            // Matches "รอโยก", "รอโยกย้าย", "waiting"
+            const isWaiting = (s) => ['waiting', 'รอโยก', 'รอโยกย้าย', 'รอตรวจสอบ'].includes((s||'').toLowerCase());
+            // Matches "moved", "โยกแล้ว", "โยกย้ายแล้ว"
+            const isMoved = (s) => ['moved', 'โยกแล้ว', 'โยกย้ายแล้ว', 'ย้ายแล้ว', 'sold', 'ขายแล้ว'].includes((s||'').toLowerCase());
+
+            el('stat-waiting').textContent = d.filter(v => isWaiting(v.status)).length;
+            el('stat-moved').textContent = d.filter(v => isMoved(v.status)).length;
+            
+            const z = {}; d.forEach(v => { const k = v.area_code||'Unassigned'; if(!z[k]) z[k]={t:0,w:0,m:0}; z[k].t++; if(isWaiting(v.status)) z[k].w++; else if(isMoved(v.status)) z[k].m++; });
+            const zc = el('zone-stats-container'); zc.innerHTML = '';
+            Object.keys(z).sort().slice(0,8).forEach(k => {
+                zc.innerHTML += `<div class="glass-card p-5 hover-lift bg-white"><div class="flex justify-between mb-4"><div class="flex gap-3 items-center"><div class="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm shadow-sm">${k}</div><span class="font-bold text-slate-700">เขต ${k}</span></div><div class="grid grid-cols-2 gap-3"><div class="bg-orange-50 p-3 rounded-xl border border-orange-100"><p class="text-orange-600 text-[10px] font-bold uppercase mb-1">รอโยกย้าย</p><p class="text-xl font-bold text-orange-700">${z[k].w}</p></div><div class="bg-emerald-50 p-3 rounded-xl border border-emerald-100"><p class="text-emerald-600 text-[10px] font-bold uppercase mb-1">โยกย้ายแล้ว</p><p class="text-xl font-bold text-emerald-700">${z[k].m}</p></div></div></div>`;
+            });
+            const tb = el('dashboard-table-body'); tb.innerHTML = '';
+            d.slice(0,5).forEach(v => { tb.innerHTML += `<tr class="transition hover:bg-slate-50"><td class="pl-6 py-4 font-medium text-slate-600">${v.seize_date||'-'}</td><td class="font-bold text-slate-800">${v.brand_model}</td><td><span class="bg-white border border-slate-200 px-2 py-1 rounded text-xs font-mono shadow-sm">${v.plate}</span></td><td class="text-xs text-slate-500">${v.branch_name}</td><td class="pr-6 text-right font-bold text-emerald-600">${Number(v.price).toLocaleString()}</td></tr>`; });
+        }
+
+        function loadVehicles() { 
+            if(vehiclesData.length===0) loadDashboardData(); 
+            else renderVehicleTable(vehiclesData); 
+        }
+
+        function renderVehicleTable(d) {
+            const tb = el('vehicle-table-body'); tb.innerHTML = '';
+            
+            const term = el('search-vehicle').value.toLowerCase();
+            const filtered = d.filter(v => {
+                const matchTerm = (v.plate||'').toLowerCase().includes(term) || (v.brand_model||'').toLowerCase().includes(term);
+                const matchZone = activeFilters.zones.size === 0 || activeFilters.zones.has(v.area_code);
+                const matchBranch = activeFilters.branches.size === 0 || activeFilters.branches.has(v.branch_name) || activeFilters.branches.has(v.branch_code);
+                const matchStatus = activeFilters.statuses.size === 0 || activeFilters.statuses.has(v.status || 'รอโยกย้าย');
+                return matchTerm && matchZone && matchBranch && matchStatus;
+            });
+
+            if(filtered.length===0) { el('empty-state').classList.remove('hidden'); return; } else el('empty-state').classList.add('hidden');
+            
+            filtered.forEach(v => {
+                const row = document.createElement('tr'); row.className="border-b border-slate-50 hover:bg-slate-50 group transition";
+                const s = (v.status||'รอโยกย้าย').toLowerCase(); 
+                let badge = 'bg-slate-100 text-slate-600 border-slate-200';
+                if(['waiting', 'รอโยก', 'รอโยกย้าย', 'รอตรวจสอบ'].includes(s)) badge = 'bg-red-100 text-red-700 border-red-200';
+                else if(['moved', 'โยกแล้ว', 'โยกย้ายแล้ว', 'ย้ายแล้ว', 'sold', 'ขายแล้ว'].includes(s)) badge = 'bg-emerald-100 text-emerald-700 border-emerald-200';
+                
+                // REQ: Column changes applied here
+                // 1. Image -> Zone Text (v.area_code)
+                // 3 & 4. Swap Branch and Location. Plate replaced by Location.
+                // Order: Zone | Date | Contract | Name | Model | Branch | Location | Status | Price | Action
+                row.innerHTML = `
+                    <td class="pl-6 py-4 font-bold text-blue-600">${v.area_code || '-'}</td>
+                    <td class="text-xs text-slate-500">${v.seize_date}</td>
+                    <td class="text-xs font-medium text-slate-700">${v.contract_no||'-'}</td>
+                    <td class="text-xs text-slate-600">${v.customer_name||'-'}</td>
+                    <td class="font-bold text-slate-800 group-hover:text-blue-600 transition">${v.brand_model}</td>
+                    
+                    <td class="text-xs text-slate-500">
+                        <div class="font-medium text-slate-700">${v.branch_name}</div>
+                        <div class="text-[10px] mt-0.5 text-slate-400">Code: ${v.branch_code || '-'}</div>
+                    </td>
+                    <td>
+                        <div class="flex items-center gap-1.5">
+                            <i class="fa-solid fa-location-dot text-red-400 text-xs"></i>
+                            <span class="text-sm font-medium text-slate-700">${v.location || '-'}</span>
+                        </div>
+                    </td>
+
+                    <td class="text-center"><span class="px-2.5 py-1 rounded-full text-[10px] uppercase font-bold border ${badge} whitespace-nowrap">${s}</span></td>
+                    <td class="text-right font-bold text-emerald-600 text-sm tracking-tight">${Number(v.price).toLocaleString()}</td>
+                    <td class="pr-6 text-center"><div class="flex justify-center gap-2 opacity-80 group-hover:opacity-100 transition"><button class="btn-view w-8 h-8 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition flex items-center justify-center shadow-sm" title="ดูรายละเอียด"><i class="fa-solid fa-eye text-xs"></i></button>${['admin','regional manager'].includes((currentUser.role||'').toLowerCase()) ? '<button class="btn-del w-8 h-8 rounded-full bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition flex items-center justify-center shadow-sm"><i class="fa-solid fa-trash text-xs"></i></button>' : ''}</div></td>`;
+                row.querySelector('.btn-view').onclick = () => viewDetail(v.id); if(row.querySelector('.btn-del')) row.querySelector('.btn-del').onclick = () => deleteVehicle(v.id); tb.appendChild(row);
+            });
+        }
+
+        // --- View Detail & Image Handling ---
+        function formatDriveUrl(url) {
+            if (!url) return null;
+            if (url.includes('drive.google.com') && url.includes('id=')) {
+                const match = url.match(/id=([a-zA-Z0-9_-]+)/);
+                if (match) return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000`;
+            } else if (url.includes('/file/d/')) {
+                const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+                if (match) return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000`;
+            }
+            return url; 
+        }
+
+        function viewDetail(id) {
+            const v = vehiclesData.find(x => x.id == id); if(!v) return;
+            hide('view-vehicles'); show('view-vehicle-detail');
+            
+            const setText = (id, val) => { if(el(id)) el(id).textContent = val || '-'; };
+            
+            setText('detail-plate', v.plate);
+            setText('detail-model', v.brand_model);
+            
+            const s = (v.status||'waiting').toLowerCase(); 
+            if(el('detail-status-badge')) {
+                el('detail-status-badge').textContent = s;
+                let bClass = 'bg-slate-100 text-slate-600';
+                if(['waiting', 'รอโยก', 'รอโยกย้าย', 'รอตรวจสอบ'].includes(s)) bClass = 'bg-red-100 text-red-700';
+                else if(['moved', 'โยกแล้ว', 'โยกย้ายแล้ว', 'sold', 'ขายแล้ว'].includes(s)) bClass = 'bg-emerald-100 text-emerald-700';
+                el('detail-status-badge').className = `px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${bClass}`;
+            }
+
+            setText('detail-contract', v.contract_no);
+            setText('detail-customer', v.customer_name);
+            setText('detail-seize-date', v.seize_date ? new Date(v.seize_date).toLocaleDateString('th-TH') : '-');
+            setText('detail-timestamp', v.timestamp); 
+            
+            setText('detail-branch-code', v.branch_code);
+            setText('detail-branch', v.branch_name);
+            setText('detail-area', v.area_code);
+            setText('detail-location', v.location);
+            
+            setText('detail-move-date', v.move_date ? new Date(v.move_date).toLocaleDateString('th-TH') : '-');
+            setText('detail-move-to', v.move_to);
+            
+            setText('detail-price', Number(v.price||0).toLocaleString());
+            setText('detail-finance', Number(v.finance_amount||0).toLocaleString());
+            setText('detail-ar', Number(v.ar_balance||0).toLocaleString());
+            
+            const setImg = (id, rawUrl) => { 
+                const d = el(id); 
+                const url = formatDriveUrl(rawUrl);
+                if(url) { 
+                    d.style.backgroundImage=`url('${url}')`; 
+                    d.onclick = () => openLightbox(url); 
+                    d.innerHTML = ''; // Clear icon
+                } else { 
+                    d.style.backgroundImage='none'; 
+                    d.innerHTML = '<div class="absolute inset-0 flex items-center justify-center text-slate-300 bg-slate-100"><i class="fa-regular fa-image text-3xl"></i></div>';
+                    d.onclick = null; 
+                }
+            };
+            setImg('detail-img-1', v.img_front_right); 
+            setImg('detail-img-2', v.img_back_right); 
+            setImg('detail-img-3', v.img_side);
+            
+            const btn = el('btn-edit-detail'); 
+            if(btn) { const newBtn = btn.cloneNode(true); btn.parentNode.replaceChild(newBtn, btn); newBtn.onclick = () => editVehicle(v); }
+        }
+        
+        function openLightbox(url) {
+            if(!url) return;
+            el('lightbox-img').src = url;
+            show('lightbox-modal');
+        }
+        function closeLightbox() { hide('lightbox-modal'); el('lightbox-img').src = ''; }
+
+        function closeDetailView() { hide('view-vehicle-detail'); show('view-vehicles'); }
+        function openVehicleModal() { 
+            document.getElementById('vehicleForm').reset(); 
+            document.querySelector('[name=rec_id]').value=""; 
+            resetImages(); 
+            // Reset status options visually
+            el('transferStatus').value = 'รอโยกย้าย';
+            toggleTransferDate();
+            show('vehicle-modal'); 
+        }
+        function closeModal(id) { hide(id); }
+        function toggleTransferDate() { 
+            const s = el('transferStatus').value; 
+            if(s==='moved' || s==='โยกแล้ว' || s==='โยกย้ายแล้ว' || s==='ขายแล้ว' || s==='sold'){ 
+                el('transferDateGroup').classList.remove('hidden'); 
+            } else { 
+                el('transferDateGroup').classList.add('hidden'); 
+            } 
+        }
+        function triggerFile(id) { el(id).click(); }
+        function previewImage(input, id) { if(input.files[0]) { const reader = new FileReader(); reader.onload=(e)=>{ el('preview'+id).src=e.target.result; el('preview'+id).classList.remove('hidden'); }; reader.readAsDataURL(input.files[0]); } }
+        function resetImages() { ['1','2','3'].forEach(i=>{ el('file'+i).value=""; el('preview'+i).classList.add('hidden'); }); }
+        const compressImage = (f) => new Promise(r => { const rd=new FileReader(); rd.readAsDataURL(f); rd.onload=e=>{ const i=new Image(); i.src=e.target.result; i.onload=()=>{ const c=document.createElement('canvas'); const s=1024/i.width; c.width=(i.width>1024)?1024:i.width; c.height=(i.width>1024)?i.height*s:i.height; const ctx=c.getContext('2d'); ctx.drawImage(i,0,0,c.width,c.height); r(c.toDataURL('image/jpeg',0.7)); }}});
+
+        async function saveVehicleData(e) {
+            e.preventDefault(); const btn = el('submitBtn'); const txt = btn.innerHTML; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> บันทึก...'; btn.disabled = true;
+            const form = new FormData(e.target); const obj = {}; form.forEach((v,k) => obj[k] = v);
+            
+            // Handle Province Abbreviation
+            const provName = el('plateProvince').value;
+            const provShort = provinceAbbr[provName] || provName; // Fallback to full name if not found
+            obj.plate = el('plateNumber').value + ' ' + provShort;
+            
+            // Combine Brand & Model
+            obj.brand_model = (obj.brand || '') + ' ' + (obj.model || '');
+
+            if(el('file1').files[0]) obj.image1 = await compressImage(el('file1').files[0]);
+            if(el('file2').files[0]) obj.image2 = await compressImage(el('file2').files[0]);
+            if(el('file3').files[0]) obj.image3 = await compressImage(el('file3').files[0]);
+            
+            const res = await apiCall('saveVehicle', { formObject: obj, userStr: JSON.stringify(currentUser) });
+            btn.innerHTML = txt; btn.disabled = false;
+            if(res && res.success) { Swal.fire({icon:'success', title:'บันทึกข้อมูลสำเร็จ', showConfirmButton:false, timer:1500}); closeModal('vehicle-modal'); loadDashboardData(); if(!el('view-vehicles').classList.contains('hidden')) switchTab('vehicles'); } else if(res) Swal.fire('Error', res.message, 'error');
+        }
+
+        function editVehicle(v) {
+            document.getElementById('vehicleForm').reset(); resetImages(); const f = document.querySelector('#vehicleForm');
+            f.rec_id.value = v.id; f.seize_date.value = v.seize_date ? new Date(v.seize_date).toISOString().split('T')[0] : '';
+            f.area_code.value = v.area_code; f.branch_code.value = v.branch_code; f.branch_name.value = v.branch_name; f.location.value = v.location;
+            f.contract_no.value = v.contract_no; f.customer_name.value = v.customer_name;
+            
+            // Split Brand/Model if space exists
+            if (v.brand_model) {
+                const parts = v.brand_model.split(' ');
+                f.brand.value = parts[0] || '';
+                f.model.value = parts.slice(1).join(' ') || '';
+            }
+            
+            let statusVal = v.status || 'รอโยกย้าย';
+            if (statusVal.toLowerCase() === 'waiting') statusVal = 'รอโยกย้าย';
+            if (statusVal === 'รอโยก') statusVal = 'รอโยกย้าย';
+            if (statusVal.toLowerCase() === 'moved') statusVal = 'โยกย้ายแล้ว';
+            if (statusVal === 'โยกแล้ว') statusVal = 'โยกย้ายแล้ว';
+            f.status.value = statusVal; 
+            
+            toggleTransferDate();
+            f.move_date.value = v.move_date ? new Date(v.move_date).toISOString().split('T')[0] : ''; f.move_to.value = v.move_to;
+            
+            if(v.plate) { 
+                // Try to split plate number and province (assumes space separator)
+                const lastSpaceIndex = v.plate.lastIndexOf(' ');
+                if (lastSpaceIndex !== -1) {
+                   el('plateNumber').value = v.plate.substring(0, lastSpaceIndex);
+                   // Reverse lookup abbr if needed, but for edit just show what we have or try to map back to full name?
+                   // User wants to see dropdown full name. Let's try to map abbr back to full name if possible
+                   const abbr = v.plate.substring(lastSpaceIndex + 1);
+                   const fullName = Object.keys(provinceAbbr).find(key => provinceAbbr[key] === abbr);
+                   el('plateProvince').value = fullName || abbr;
+                } else {
+                   el('plateNumber').value = v.plate;
+                }
+            }
+            
+            f.price.value = Number(v.price||0).toLocaleString(); 
+            f.finance_amount.value = Number(v.finance_amount||0).toLocaleString(); 
+            f.ar_balance.value = Number(v.ar_balance||0).toLocaleString();
+            
+            f.img_front_right_old.value = v.img_front_right; f.img_back_right_old.value = v.img_back_right; f.img_side_old.value = v.img_side;
+            show('vehicle-modal');
+        }
+
+        async function deleteVehicle(id) { const r = await Swal.fire({title:'ยืนยันลบ?', icon:'warning', showCancelButton:true, confirmButtonColor:'#ef4444', cancelButtonText: 'ยกเลิก', confirmButtonText: 'ลบข้อมูล'}); if(r.isConfirmed) { showLoader(); const res = await apiCall('deleteVehicle', { id, userStr: JSON.stringify(currentUser) }); hideLoader(); if(res && res.success) { Swal.fire('Deleted!', 'ลบข้อมูลเรียบร้อยแล้ว', 'success'); loadDashboardData(); } } }
+        function filterVehicles() { renderVehicleTable(vehiclesData); }
+
+        async function loadUsers() { 
+            const data = await apiCall('getUsers'); 
+            
+            // Fix: handle potential null/undefined response
+            if (!Array.isArray(data)) { console.error("Invalid user data format", data); return; }
+            
+            usersData = data || []; 
+            const tb = el('users-table-body'); tb.innerHTML=''; 
+            
+            usersData.forEach(u => { 
+                const uname = u.username || u.Username; 
+                if (!uname) return; // Skip if no username
+
+                const safeUname = uname.toString().replace(/'/g, "\\'");
+                const r = document.createElement('tr'); 
+                r.className='hover:bg-slate-50 border-b border-slate-50 transition'; 
+                r.innerHTML = `
+                    <td class="pl-6 py-4 font-bold text-slate-700">${uname}</td>
+                    <td>${u.name || ''}</td>
+                    <td><span class="bg-blue-50 text-blue-600 px-2 py-1 rounded text-xs font-bold">${u.role || ''}</span></td>
+                    <td><span class="text-emerald-600 text-xs font-bold uppercase">Active</span></td>
+                    <td class="pr-6 text-right flex justify-end gap-2">
+                        <button class="btn-edit w-8 h-8 rounded-full bg-yellow-50 text-yellow-600 hover:bg-yellow-100 transition flex items-center justify-center shadow-sm" title="แก้ไข" onclick="editUser('${safeUname}')"><i class="fa-solid fa-pen text-xs"></i></button>
+                        <button class="btn-del w-8 h-8 rounded-full bg-red-50 text-red-400 hover:bg-red-100 hover:text-red-600 transition flex items-center justify-center shadow-sm" title="ลบ" onclick="deleteUser('${safeUname}')"><i class="fa-solid fa-trash text-xs"></i></button>
+                    </td>`; 
+                tb.appendChild(r); 
+            }); 
+        }
+
+        function openUserModal() { document.getElementById('userForm').reset(); document.querySelector('[name=u_username]').readOnly = false; document.querySelector('[name=u_old_username]').value = ""; show('user-modal'); }
+        
+        function editUser(username) {
+            const u = usersData.find(user => (user.username || user.Username) == username);
+            if (!u) { console.error("User not found:", username); return; }
+            const f = document.getElementById('userForm');
+            f.u_old_username.value = u.username || u.Username;
+            f.u_username.value = u.username || u.Username;
+            f.u_username.readOnly = false; 
+            f.u_password.value = ''; 
+            f.u_name.value = u.name;
+            f.u_role.value = u.role;
+            show('user-modal');
+        }
+
+        async function saveUserData(e) { e.preventDefault(); const f=e.target; const d={username:f.u_username.value, old_username:f.u_old_username.value, password:f.u_password.value, name:f.u_name.value, role:f.u_role.value, status:'active'}; const res = await apiCall('saveUser', { form: d, userStr: JSON.stringify(currentUser) }); if(res && res.success) { Swal.fire({icon:'success', title:'บันทึกสำเร็จ', timer:1500, showConfirmButton:false}); closeModal('user-modal'); loadUsers(); f.reset(); } else Swal.fire('Error', res.message, 'error'); }
+        async function deleteUser(u) { const r = await Swal.fire({title: 'ยืนยันลบผู้ใช้?', text: u, icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', cancelButtonColor: '#3085d6', confirmButtonText: 'ลบผู้ใช้', cancelButtonText: 'ยกเลิก'}); if(r.isConfirmed) { await apiCall('deleteUser', { targetUsername: u, userStr: JSON.stringify(currentUser) }); Swal.fire('Deleted!', 'ลบผู้ใช้เรียบร้อยแล้ว', 'success'); loadUsers(); } }
+        async function loadLogs() { const d = await apiCall('getLogs'); if(d) el('logs-table-body').innerHTML = d.map(l=>`<tr class="border-b border-slate-50 hover:bg-slate-50"><td class="pl-6 py-3 text-xs text-slate-400 font-mono">${new Date(l.timestamp).toLocaleString()}</td><td class="font-bold text-blue-600 text-xs">${l.username}</td><td><span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-[10px] uppercase font-bold">${l.action}</span></td><td class="pr-6 text-sm text-slate-600">${l.details}</td></tr>`).join(''); }
+
+        // --- NEW: Change Password Logic (Enhanced) ---
+        function openChangePasswordModal() {
+            document.getElementById('passwordForm').reset();
+            // Reset visual states
+            document.getElementById('match-msg').classList.add('hidden');
+            document.querySelectorAll('#passwordForm input').forEach(i => {
+                i.classList.remove('border-red-500', 'border-green-500', 'focus:border-red-500', 'focus:border-green-500', 'ring-red-500/10', 'ring-green-500/10');
+            });
+            show('password-modal');
+        }
+
+        function togglePass(inputId, btn) {
+            const input = document.getElementById(inputId);
+            const icon = btn.querySelector('i');
+            if (input.type === "password") {
+                input.type = "text";
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = "password";
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+
+        function checkPwdMatch() {
+            const p1 = document.getElementById('new_password').value;
+            const p2 = document.getElementById('confirm_password').value;
+            const msg = document.getElementById('match-msg');
+            const btn = document.getElementById('btn-save-pwd');
+            const inp2 = document.getElementById('confirm_password');
+
+            if (p2 === "") {
+                msg.classList.add('hidden');
+                inp2.classList.remove('border-red-500', 'border-green-500', 'focus:border-red-500', 'focus:border-green-500', 'ring-red-500/10', 'ring-green-500/10');
+                btn.disabled = false;
+                return;
+            }
+
+            msg.classList.remove('hidden');
+            if (p1 === p2) {
+                msg.innerHTML = '<i class="fa-solid fa-circle-check"></i> ตรงกัน';
+                msg.className = "text-[10px] text-green-600 font-bold";
+                inp2.classList.remove('border-red-500', 'focus:border-red-500', 'ring-red-500/10');
+                inp2.classList.add('border-green-500', 'focus:border-green-500', 'ring-green-500/10');
+                btn.disabled = false;
+            } else {
+                msg.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> ไม่ตรงกัน';
+                msg.className = "text-[10px] text-red-500 font-bold";
+                inp2.classList.remove('border-green-500', 'focus:border-green-500', 'ring-green-500/10');
+                inp2.classList.add('border-red-500', 'focus:border-red-500', 'ring-red-500/10');
+                btn.disabled = true;
+            }
+        }
+
+        async function handleChangePassword(e) {
+            e.preventDefault();
+            const f = e.target;
+            const oldPass = f.old_password.value;
+            const newPass = f.new_password.value;
+            const confirmPass = f.confirm_password.value;
+
+            if (newPass !== confirmPass) {
+                Swal.fire('Error', 'รหัสผ่านใหม่ไม่ตรงกัน', 'error');
+                return;
+            }
+
+            // Show Custom Spinner inside modal
+            document.getElementById('pwd-loader').classList.remove('hidden');
+            
+            const res = await apiCall('changePassword', { 
+                username: currentUser.username, 
+                oldPassword: oldPass, 
+                newPassword: newPass 
+            });
+            
+            document.getElementById('pwd-loader').classList.add('hidden');
+
+            if (res && res.success) {
+                Swal.fire({ icon: 'success', title: 'เปลี่ยนรหัสผ่านสำเร็จ', text: 'กรุณาเข้าสู่ระบบใหม่ด้วยรหัสผ่านใหม่', showConfirmButton: true })
+                .then(() => logout());
+                closeModal('password-modal');
+            } else {
+                Swal.fire('Error', res ? res.message : 'เกิดข้อผิดพลาด', 'error');
+            }
+        }
+    </script>
+</body>
+</html>
